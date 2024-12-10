@@ -1,73 +1,109 @@
-import ember
+"""
+EMBER Dataset Training with LightGBM.
+Optimized for server usage with GPU configuration.
+"""
+
 import os
+import torch
+import ember
 import lightgbm as lgb
+import numpy as np
+import torch.nn as nn
+
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 
-# Load the EMBER feature set (already vectorized)
-data_dir = "data"
-#print("Loading the EMBER feature set")
-#ember.create_vectorized_features(data_dir) # creates X_train.dat and y_train.dat, X_test.dat and y_test.dat
+# Global Settings
+GLOBAL_SEED = 666
+DATA_DIR = "data"
 
-# Load the vectorized features
-print("Loading vectorized features")
-print("Loading training data")
-X_train, y_train = ember.read_vectorized_features(data_dir, subset="train")
-print("Loading test data")
-X_test, y_test = ember.read_vectorized_features(data_dir, subset="test")
+def select_available_gpu() -> str:
+    """Automatically selects the first available GPU ID."""
+    if not torch.cuda.is_available():
+        print("No GPUs available. Using CPU.")
+        return ""
 
-
-print("Training data shape: {}".format(X_train.shape))
-print("Test data shape: {}".format(X_test.shape))
-
-# Reduce the size of the dataset
-print("Reducing the size of the dataset")
-X_train, y_train = X_train[:400000], y_train[:400000]
-X_test, y_test = X_test[:100000], y_test[:100000]
-
-print(f"Training Data Distribution: {sum(y_train)} positive, {len(y_train) - sum(y_train)} negative")
-
+    available_gpus = [i for i in range(torch.cuda.device_count())]
+    for gpu_id in available_gpus:
+        try:
+            torch.cuda.set_device(gpu_id)  # Try to set the GPU
+            print(f"Using GPU {gpu_id}: {torch.cuda.get_device_name(gpu_id)}")
+            return str(gpu_id)
+        except RuntimeError as e:
+            print(f"GPU {gpu_id} not available: {e}")
+    
+    print("No usable GPUs found. Falling back to CPU.")
+    return ""
 
 
-# Optimise params
-#print("Optimising model parameters")
-"""
-params = {
-    "boosting": "gbdt",
-    "objective": "binary",
-    "num_iterations": 100,
-    "learning_rate": 0.1,
-    "num_leaves": 31,  # Default and sufficient for most cases
-    "max_depth": -1,   # Unlimited depth to let num_leaves decide complexity
-    "min_data_in_leaf": 20,  # Minimum number of samples in a leaf
-    "feature_fraction": 0.8,  # Use 80% of features per iteration
-    "bagging_fraction": 0.8,  # Use 80% of data per iteration
-    "bagging_freq": 5         # Perform bagging every 5 iterations
-}
-"""
-
-params = ember.optimize_model(X_train, y_train)
+def configure_environment(seed: int) -> None:
+    """Set global seeds and environment variables."""
+    torch.manual_seed(seed)
+    os.environ["CUDA_VISIBLE_DEVICES"] = select_available_gpu()
 
 
-# Train the model
-print("Training LightGBM model")
 
-# Filter unlabeled data
-train_rows = (y_train != -1)
+def load_and_reduce_dataset(data_dir: str, train_size: int, test_size: int) -> dict:
+    """Load and reduce the EMBER dataset."""
+    X_train, y_train = ember.read_vectorized_features(data_dir, subset="train")
+    X_test, y_test = ember.read_vectorized_features(data_dir, subset="test")
+    return {
+        "X_train": X_train[:train_size],
+        "y_train": y_train[:train_size],
+        "X_test": X_test[:test_size],
+        "y_test": y_test[:test_size],
+    }
 
-# Train
-lgbm_dataset = lgb.Dataset(X_train[train_rows], y_train[train_rows])
-lgbm_model = lgb.train(params, lgbm_dataset)
 
-lgbm_model.save_model(os.path.join(data_dir, "model_mine.txt"))
+def train_torch_model(model, dataloader, device, optimizer, criterion, epochs=10):
+    """Train a PyTorch model using DataParallel for multi-GPU support."""
+    model = nn.DataParallel(model)  # Wrap the model to use multiple GPUs
+    model.to(device)
+
+    model.train()
+    for epoch in range(epochs):
+        for inputs, labels in dataloader:
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+        print(f"Epoch {epoch + 1}/{epochs} complete.")
+
+    return model
+
+def train_model(X_train: np.ndarray, y_train: np.ndarray, params: dict, model_path: str) -> lgb.Booster:
+    """Train and save a LightGBM model."""
+    train_rows = y_train != -1
+    dataset = lgb.Dataset(X_train[train_rows], y_train[train_rows])
+    model = lgb.train(params, dataset)
+    model.save_model(model_path)
+    return model
 
 
-# Evaluate the model
-print("Evaluating the model")
-y_pred = lgbm_model.predict(X_test)
-print(f"Test Data Distribution: {sum(y_test)} positive, {len(y_test) - sum(y_test)} negative")
+def evaluate_model(model: lgb.Booster, X_test: np.ndarray, y_test: np.ndarray) -> None:
+    """Evaluate the model and print metrics."""
+    y_pred = model.predict(X_test)
+    print(f"Accuracy: {accuracy_score(y_test, y_pred > 0.5):.4f}")
+    print(f"AUC: {roc_auc_score(y_test, y_pred):.4f}")
+    print("Classification Report:\n", classification_report(y_test, y_pred > 0.5))
 
-y_pred_binary = (y_pred > 0.5).astype(int)
-print(f"Accuracy: {accuracy_score(y_test, y_pred_binary)}")
-print(f"AUC: {roc_auc_score(y_test, y_pred)}")
-print("Classification Report:")
-print(classification_report(y_test, y_pred_binary))
+
+def main() -> None:
+    """Run training and evaluation pipeline."""
+    configure_environment(GLOBAL_SEED, GPU_ID)
+
+    data = load_and_reduce_dataset(DATA_DIR, train_size=400_000, test_size=100_000)
+    params = ember.optimize_model(data["X_train"], data["y_train"])
+
+    model_path = os.path.join(DATA_DIR, "model_mine.txt")
+    model = train_model(data["X_train"], data["y_train"], params, model_path)
+
+    evaluate_model(model, data["X_test"], data["y_test"])
+
+
+if __name__ == "__main__":
+    main()
+
