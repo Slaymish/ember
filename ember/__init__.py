@@ -164,13 +164,10 @@ def read_metadata(data_dir):
     return pd.read_csv(os.path.join(data_dir, "metadata.csv"), index_col=0)
 
 
-def optimize_model(data_dir):
+def optimize_model(X_train, y_train):
     """
     Run a grid search to find the best LightGBM parameters
     """
-    # Read data
-    X_train, y_train = read_vectorized_features(data_dir, subset="train")
-
     # Filter unlabeled data
     train_rows = (y_train != -1)
 
