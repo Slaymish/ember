@@ -93,7 +93,7 @@ def evaluate_model(model: lgb.Booster, X_test: np.ndarray, y_test: np.ndarray) -
 
 def main() -> None:
     """Run training and evaluation pipeline."""
-    configure_environment(GLOBAL_SEED, GPU_ID)
+    configure_environment(GLOBAL_SEED)
 
     data = load_and_reduce_dataset(DATA_DIR, train_size=400_000, test_size=100_000)
     params = ember.optimize_model(data["X_train"], data["y_train"])
