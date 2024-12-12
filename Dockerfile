@@ -10,11 +10,12 @@ RUN micromamba install -y -n base --channel conda-forge --file requirements_cond
     micromamba clean --all --yes
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
 
+RUN pip install torch
+
 # Copy all files
 COPY --chown=$MAMBA_USER:$MAMBA_USER . /ember
 
 # Switch to the non-root user
 USER $MAMBA_USER
 
-# Install EMBER
-#RUN python setup.py install
+ENV PYTHONPATH=/ember
