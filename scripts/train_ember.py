@@ -8,13 +8,12 @@ import torch
 import ember
 import numpy as np
 import torch.nn as nn
+import argparse
 
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 
 # Global Settings
 GLOBAL_SEED = 666
-DATA_DIR = "data"
-
 
 class LightGBMModel(nn.Module):
     """Example PyTorch model for training with LightGBM."""
@@ -141,17 +140,17 @@ def calculate_metrics(predictions, targets):
 
 
 
-def main() -> None:
+def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", epochs: int=10, batch_size: int=64):
     """Run training and evaluation pipeline."""
     configure_environment(GLOBAL_SEED)
 
     # if .dat files not present
-    if not os.path.exists(os.path.join(DATA_DIR, "X_train.dat")):
+    if not os.path.exists(os.path.join(data_dir, "X_train.dat")):
         print("No dataset found. Creating EMBER dataset... This may take a while.")
-        create_dataset(DATA_DIR)
+        create_dataset(data_dir)
     
 
-    data = load_and_reduce_dataset(DATA_DIR)
+    data = load_and_reduce_dataset(data_dir, train_size, test_size)
 
     # Prepare PyTorch model
     model = LightGBMModel()
@@ -164,11 +163,11 @@ def main() -> None:
         torch.from_numpy(data["X_train"]).float(),
         torch.from_numpy(data["y_train"]).float()
     )
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
     # Train the model using train_torch_model
     print("Training PyTorch model...")
-    model, training_losses = train_torch_model(model, train_loader, device, optimizer, criterion)
+    model, training_losses = train_torch_model(model, train_loader, device, optimizer, criterion, epochs)
 
     # Evaluate the model
     test_dataset = torch.utils.data.TensorDataset(
@@ -176,7 +175,7 @@ def main() -> None:
         torch.from_numpy(data["y_test"]).float()
     )
 
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64, shuffle=False)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     predictions, targets = evaluate_model(model, test_loader, device)
 
@@ -193,5 +192,13 @@ def main() -> None:
     torch.save(model.state_dict(), "model.pth")
 
 if __name__ == "__main__":
-    main()
+    args = argparse.ArgumentParser()
+    args.add_argument("--train_size", type=int, default=None)
+    args.add_argument("--test_size", type=int, default=None)
+    args.add_argument("--data_dir", type=str, default="data/ember")
+    args.add_argument("--epochs", type=int, default=10)
+    args.add_argument("--batch_size", type=int, default=64)
+    args = args.parse_args()
+
+    main(args.train_size, args.test_size, args.data_dir, args.epochs, args.batch_size)
 

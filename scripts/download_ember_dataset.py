@@ -33,13 +33,13 @@ def download_file(url, dest_folder):
     return filename
 
 def main():
-    url = 'https://ember.elastic.co/ember_dataset.tar.bz2'
+    url = 'https://ember.elastic.co/ember_dataset_2018_2.tar.bz2'
     dest_folder = './data'
     download_file(url, dest_folder)
 
     # Extract the tarball
     print("Extracting EMBER dataset...")
-    tarball = os.path.join(dest_folder, 'ember_dataset.tar.bz2')
+    tarball = os.path.join(dest_folder, 'ember_dataset_2018_2.tar.bz2')
     with tarfile.open(tarball, 'r:bz2') as tar:
         tar.extractall(dest_folder)
 
