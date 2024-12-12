@@ -10,6 +10,8 @@ import ember
 import numpy as np
 import torch.nn as nn
 import argparse
+import pandas as pd
+from datetime import datetime
 
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 import lightgbm as lgb
@@ -183,6 +185,28 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     predictions, targets = evaluate_model(model, test_loader, device)
+
+    # save experiment results
+    experiment_results = pd.DataFrame({
+        "predictions": predictions,
+        "targets": targets,
+        "training_losses": training_losses,
+        "epochs": epochs,
+        "batch_size": batch_size,
+        "train_size": train_size,
+        "test_size": test_size
+        "auc": auc,
+        "accuracy": accuracy
+        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
+
+    # append to existing results
+    if os.path.exists("experiment_results.csv"):
+        experiment_results = pd.concat([pd.read_csv("experiment_results.csv"), experiment_results])
+
+    experiment_results.to_csv("experiment_results.csv", index=False)
+
+
 
     # Calculate evaluation metrics
     print("Evaluating model...")
