@@ -4,9 +4,10 @@ FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 # Set working directory
 WORKDIR /ember
 
-# Install dependencies (using conda instead of micromamba)
+# Install mamba and dependencies
 COPY requirements_conda.txt /ember/
-RUN conda install -y --channel conda-forge --file requirements_conda.txt && \
+RUN conda install -y -n base -c conda-forge mamba && \
+    mamba install -y -n base --file requirements_conda.txt && \
     conda clean --all --yes
 
 # Copy all files
