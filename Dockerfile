@@ -1,21 +1,26 @@
 # Base image
-FROM mambaorg/micromamba:0.25.1
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 
 # Set working directory
 WORKDIR /ember
 
 # Install dependencies
-COPY --chown=$MAMBA_USER:$MAMBA_USER requirements_conda.txt /ember/
+COPY requirements_conda.txt /ember/
 RUN micromamba install -y -n base --channel conda-forge --file requirements_conda.txt && \
     micromamba clean --all --yes
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
 
-RUN pip install torch
-
 # Copy all files
-COPY --chown=$MAMBA_USER:$MAMBA_USER . /ember
+COPY . /ember
 
-# Switch to the non-root user
-USER $MAMBA_USER
+# Handle permissions explicitly
+RUN chmod -R 755 /ember && chown -R 1000:1000 /ember
 
+# Switch to non-root user (optional: make this configurable)
+USER 1000:1000
+
+# Set environment variables
 ENV PYTHONPATH=/ember
+
+# Default command (adjust if needed)
+CMD ["bash"]
