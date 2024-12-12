@@ -17,4 +17,4 @@ COPY --chown=$MAMBA_USER:$MAMBA_USER . /ember
 USER $MAMBA_USER
 
 # Install EMBER
-RUN python setup.py install
+#RUN python setup.py install
