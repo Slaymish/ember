@@ -13,7 +13,10 @@ ARG MAMBA_DOCKERFILE_ACTIVATE=1
 # Copy all files
 COPY --chown=$MAMBA_USER:$MAMBA_USER . /ember
 
-RUN mkdir -p /ember/data
+RUN chown -R $MAMBA_USER:$MAMBA_USER /ember
+
+#RUN mkdir -p /ember/data
 
 # Install EMBER
+USER $MAMBA_USER
 RUN python setup.py install
