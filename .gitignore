@@ -2,3 +2,4 @@ build/
 dist/
 ember.egg-info/
 venv/
+*.exe
