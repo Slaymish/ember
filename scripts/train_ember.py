@@ -192,7 +192,7 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     # calculate class weights
     num_pos = data["y_train"].sum()
     num_neg = data["y_train"].shape[0] - num_pos
-    pos_weight = torch.tensor(num_neg / num_pos, dtype=torch.float32).to(device)
+    pos_weight = torch.tensor(num_neg / num_pos, dtype=torch.float32).to("cuda")
 
     # Prepare PyTorch model
     input_dim = data["X_train"].shape[1]
