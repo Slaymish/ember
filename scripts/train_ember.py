@@ -1,10 +1,4 @@
-"""
-EMBER Dataset Training with PyTorch.
-Optimized for server usage with GPU configuration.
-"""
-
 import os
-import pynvml
 import torch
 import ember
 import numpy as np
@@ -15,9 +9,7 @@ from datetime import datetime
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 from download_ember_dataset import create_dataset
 
-# Global Settings
 GLOBAL_SEED = 666
-GPU_ID = None
 
 class SimpleMLP(nn.Module):
     def __init__(self, input_dim, hidden_dim=256, output_dim=1):
@@ -34,42 +26,7 @@ class SimpleMLP(nn.Module):
         return self.layers(x)
 
 
-def select_available_gpu() -> str:
-    """Automatically selects the first GPU with low utilization."""
-    if not torch.cuda.is_available():
-        print("No GPUs available. Using CPU.")
-        return ""
-
-    pynvml.nvmlInit()
-    available_gpus = [i for i in range(torch.cuda.device_count())]
-    for gpu_id in available_gpus:
-        handle = pynvml.nvmlDeviceGetHandleByIndex(gpu_id)
-        utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
-        print(f"GPU {gpu_id} utilization: {utilization.gpu}%")
-        if utilization.gpu < 10:  # Threshold for low utilization (adjust as needed)
-            try:
-                torch.cuda.set_device(gpu_id)
-                print(f"Using GPU {gpu_id}: {torch.cuda.get_device_name(gpu_id)}")
-                return str(gpu_id)
-            except RuntimeError as e:
-                print(f"GPU {gpu_id} not available: {e}")
-
-    print("No suitable GPUs found. Falling back to CPU.")
-    return ""
-
-
-def configure_environment(seed: int) -> None:
-    """Set global seeds and environment variables."""
-    torch.manual_seed(seed)
-    selected_gpu = select_available_gpu()
-    if selected_gpu:
-        os.environ["CUDA_VISIBLE_DEVICES"] = selected_gpu
-    else:
-        os.environ.pop("CUDA_VISIBLE_DEVICES", None)
-
-
 def load_and_reduce_dataset(data_dir: str, train_size: int=None, test_size: int=None) -> dict:
-    """Load and reduce the EMBER dataset."""
     X_train, y_train = ember.read_vectorized_features(data_dir, subset="train")
     X_test, y_test = ember.read_vectorized_features(data_dir, subset="test")
 
@@ -89,10 +46,8 @@ def load_and_reduce_dataset(data_dir: str, train_size: int=None, test_size: int=
 
 
 def train_torch_model(model, dataloader, device, optimizer, criterion, epochs=10):
-    """Train a PyTorch model using DataParallel for multi-GPU support."""
-    model = nn.DataParallel(model)
+    # `model` is already wrapped by DataParallel in `main`
     model.to(device)
-
     training_losses = []
     model.train()
     try:
@@ -100,16 +55,12 @@ def train_torch_model(model, dataloader, device, optimizer, criterion, epochs=10
             epoch_loss = 0.0
             for inputs, labels in dataloader:
                 inputs, labels = inputs.to(device), labels.to(device)
-
                 optimizer.zero_grad()
-                outputs = model(inputs)
-                outputs = outputs.squeeze(1)
+                outputs = model(inputs).squeeze(1)
                 loss = criterion(outputs, labels)
-
                 loss.backward()
                 optimizer.step()
                 epoch_loss += loss.item()
-
             avg_epoch_loss = epoch_loss / len(dataloader)
             training_losses.append(avg_epoch_loss)
             print(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_epoch_loss:.4f}")
@@ -124,7 +75,6 @@ def train_torch_model(model, dataloader, device, optimizer, criterion, epochs=10
 
 
 def evaluate_model(model, dataloader, device):
-    """Evaluate a PyTorch model on a dataset."""
     model.eval()
     predictions = []
     targets = []
@@ -141,10 +91,10 @@ def evaluate_model(model, dataloader, device):
 
 
 def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", epochs: int=10, batch_size: int=64):
-    """Run training and evaluation pipeline."""
-    configure_environment(GLOBAL_SEED)
+    # Set seeds
+    torch.manual_seed(GLOBAL_SEED)
 
-    # if .dat files not present
+    # If .dat files not present
     if not os.path.exists(os.path.join(data_dir, "X_train.dat")):
         print("No dataset found. Creating EMBER dataset... This may take a while.")
         create_dataset(data_dir)
@@ -153,8 +103,10 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
 
     # Prepare PyTorch model
     input_dim = data["X_train"].shape[1]
-    model = SimpleMLP(input_dim)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = SimpleMLP(input_dim).to(device)
+    model = nn.DataParallel(model)  # Wrap in DataParallel to use multiple GPUs
+
     optimizer = torch.optim.Adam(model.parameters())
     criterion = nn.BCEWithLogitsLoss()
 
@@ -165,7 +117,6 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     )
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    # Train the model
     print("Training PyTorch model...")
     model, training_losses = train_torch_model(model, train_loader, device, optimizer, criterion, epochs)
 
@@ -195,7 +146,6 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
         "timestamp": [datetime.now().strftime('%Y-%m-%d %H:%M:%S')]*len(predictions)
     })
 
-    # Append to existing results
     if os.path.exists("experiment_results.csv"):
         prev_results = pd.read_csv("experiment_results.csv")
         experiment_results = pd.concat([prev_results, experiment_results], ignore_index=True)
@@ -219,9 +169,6 @@ if __name__ == "__main__":
     args.add_argument("--data_dir", type=str, default="data/ember")
     args.add_argument("--epochs", type=int, default=10)
     args.add_argument("--batch_size", type=int, default=64)
-    args.add_argument("--gpu_id", type=int, default=None)
     args = args.parse_args()
-
-    GPU_ID = args.gpu_id
 
     main(args.train_size, args.test_size, args.data_dir, args.epochs, args.batch_size)
