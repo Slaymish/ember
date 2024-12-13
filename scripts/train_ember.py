@@ -30,6 +30,16 @@ def load_and_reduce_dataset(data_dir: str, train_size: int=None, test_size: int=
     X_train, y_train = ember.read_vectorized_features(data_dir, subset="train")
     X_test, y_test = ember.read_vectorized_features(data_dir, subset="test")
 
+    # Filter out unlabeled samples
+    train_mask = (y_train != -1)
+    X_train = X_train[train_mask]
+    y_train = y_train[train_mask]
+
+    test_mask = (y_test != -1)
+    X_test = X_test[test_mask]
+    y_test = y_test[test_mask]
+
+
     print(f"Loaded EMBER dataset with {X_train.shape[0]} training samples and {X_test.shape[0]} test samples.")
 
     if train_size is None:
