@@ -7,7 +7,7 @@ WORKDIR /ember
 # Install mamba and dependencies
 COPY requirements_conda.txt /ember/
 RUN conda install -y -n base -c conda-forge mamba && \
-    mamba install -y -n base python=3.8 py-lief pytorch torchvision torchaudio cudatoolkit=12.1 -c pytorch -c conda-forge && \
+    mamba install -y -n base python=3.8 py-lief pytorch torchvision torchaudio -c pytorch -c conda-forge && \
     mamba install -y -n base --file requirements_conda.txt && \
     conda clean --all --yes
 
