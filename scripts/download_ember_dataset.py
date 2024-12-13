@@ -2,6 +2,7 @@ import os
 import requests
 from tqdm import tqdm
 import tarfile
+import ember
 
 def download_file(url, dest_folder):
     if not os.path.exists(dest_folder):
@@ -32,19 +33,41 @@ def download_file(url, dest_folder):
 
     return filename
 
+def extract_tarball(tarball, dest_folder):
+    with tarfile.open(tarball, 'r:bz2') as tar:
+        tar.extractall(dest_folder)
+
+    return True
+
+def create_dataset(data_dir: str):
+    """Create the EMBER dataset from the raw features."""
+    print("Creating EMBER dataset...")
+    ember.create_vectorized_features(data_dir)
+    ember.create_metadata(data_dir)
+
 def main():
     url = 'https://ember.elastic.co/ember_dataset_2018_2.tar.bz2'
     dest_folder = './data'
+
+    if os.path.exists(os.path.join(dest_folder, "ember2018")):
+        print("EMBER dataset already downloaded and extracted.")
+        print("creating dataset... (the .dat files)")
+        create_dataset(dest_folder)
+        return
+
     download_file(url, dest_folder)
 
     # Extract the tarball
     print("Extracting EMBER dataset...")
-    tarball = os.path.join(dest_folder, 'ember_dataset_2018_2.tar.bz2')
-    with tarfile.open(tarball, 'r:bz2') as tar:
-        tar.extractall(dest_folder)
+    tarball = os.path.join(dest_folder, url.split('/')[-1])
+    worked = extract_tarball(tarball, dest_folder)
 
     # Remove the tarball
-    os.remove(tarball)
+    if worked:
+        os.remove(tarball)
+    else:
+        print("Failed to extract tarball. Exiting...")
+
 
     print("EMBER dataset downloaded and extracted successfully.")
 

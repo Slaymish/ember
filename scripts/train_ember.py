@@ -13,6 +13,7 @@ import argparse
 import pandas as pd
 from datetime import datetime
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
+from download_ember_dataset import create_dataset
 
 # Global Settings
 GLOBAL_SEED = 666
@@ -65,13 +66,6 @@ def configure_environment(seed: int) -> None:
         os.environ["CUDA_VISIBLE_DEVICES"] = selected_gpu
     else:
         os.environ.pop("CUDA_VISIBLE_DEVICES", None)
-
-
-def create_dataset(data_dir: str):
-    """Create the EMBER dataset from the raw features."""
-    print("Creating EMBER dataset...")
-    ember.create_vectorized_features(data_dir)
-    ember.create_metadata(data_dir)
 
 
 def load_and_reduce_dataset(data_dir: str, train_size: int=None, test_size: int=None) -> dict:
