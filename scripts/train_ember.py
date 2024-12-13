@@ -190,8 +190,9 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     data = load_and_reduce_dataset(data_dir, train_size, test_size)
 
     # calculate class weights
-    class_weights = torch.tensor([1, (data["y_train"].shape[0] - data["y_train"].sum()) / data["y_train"].sum()])
-    class_weights = class_weights.to("cuda")
+    num_pos = data["y_train"].sum()
+    num_neg = data["y_train"].shape[0] - num_pos
+    pos_weight = (num_neg / num_pos).to(device)  # single scalar value
 
     # Prepare PyTorch model
     input_dim = data["X_train"].shape[1]
@@ -200,7 +201,7 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     model = nn.DataParallel(model)  # Wrap in DataParallel to use multiple GPUs
 
     optimizer = torch.optim.Adam(model.parameters())
-    criterion = nn.BCEWithLogitsLoss(pos_weight=class_weights)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     # Make LR scheduler more gradual
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
