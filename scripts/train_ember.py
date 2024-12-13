@@ -135,16 +135,14 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
 
     # Save experiment results
     experiment_results = pd.DataFrame({
-        "predictions": predictions,
-        "targets": targets,
-        "epochs": [epochs]*len(predictions),
-        "batch_size": [batch_size]*len(predictions),
-        "train_size": [train_size]*len(predictions),
-        "test_size": [test_size]*len(predictions),
+        "timestamp": [datetime.now().strftime('%Y-%m-%d %H:%M:%S')]*len(predictions),
         "auc": [auc]*len(predictions),
         "accuracy": [accuracy]*len(predictions),
-        "timestamp": [datetime.now().strftime('%Y-%m-%d %H:%M:%S')]*len(predictions)
+        "samples_per_epoch": [train_size],
+        "epochs": [epochs],
+        "batch_size": [batch_size]
     })
+
 
     if os.path.exists("experiment_results.csv"):
         prev_results = pd.read_csv("experiment_results.csv")
