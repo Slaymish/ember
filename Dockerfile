@@ -10,7 +10,10 @@ RUN conda install -y -n base -c conda-forge mamba && \
     mamba install -y -n base python=3.8 && \
     mamba install -y -n base --file requirements_conda.txt && \
     conda clean --all --yes && \
-    pip install py-lief==0.12.0
+    git clone https://github.com/lief-project/LIEF.git /tmp/LIEF && \
+    cd /tmp/LIEF && \
+    python setup.py install && \
+    cd / && rm -rf /tmp/LIEF
 
 # Copy all files
 COPY . /ember
