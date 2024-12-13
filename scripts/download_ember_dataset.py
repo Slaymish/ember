@@ -52,7 +52,7 @@ def main():
     if os.path.exists(os.path.join(dest_folder, "ember2018")):
         print("EMBER dataset already downloaded and extracted.")
         print("creating dataset... (the .dat files)")
-        create_dataset(dest_folder)
+        create_dataset(os.path.join(dest_folder, "ember2018"))
         return
 
     download_file(url, dest_folder)
