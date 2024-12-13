@@ -61,22 +61,22 @@ def vectorize_subset(X_path, y_path, raw_feature_paths, extractor, nrows):
         pass
 
 
-def create_vectorized_features(data_dir, feature_version=2):
+def create_vectorized_features(data_dir, output_dir, feature_version=2):
     """
     Create feature vectors from raw features and write them to disk
     """
     extractor = PEFeatureExtractor(feature_version)
 
     print("Vectorizing training set")
-    X_path = os.path.join(data_dir, "X_train.dat")
-    y_path = os.path.join(data_dir, "y_train.dat")
+    X_path = os.path.join(output_dir, "X_train.dat")
+    y_path = os.path.join(output_dir, "y_train.dat")
     raw_feature_paths = [os.path.join(data_dir, "train_features_{}.jsonl".format(i)) for i in range(6)]
     nrows = sum([1 for fp in raw_feature_paths for line in open(fp)])
     vectorize_subset(X_path, y_path, raw_feature_paths, extractor, nrows)
 
     print("Vectorizing test set")
-    X_path = os.path.join(data_dir, "X_test.dat")
-    y_path = os.path.join(data_dir, "y_test.dat")
+    X_path = os.path.join(output_dir, "X_test.dat")
+    y_path = os.path.join(output_dir, "y_test.dat")
     raw_feature_paths = [os.path.join(data_dir, "test_features.jsonl")]
     nrows = sum([1 for fp in raw_feature_paths for line in open(fp)])
     vectorize_subset(X_path, y_path, raw_feature_paths, extractor, nrows)
@@ -126,7 +126,7 @@ def read_metadata_record(raw_features_string):
     return {k: all_data[k] for k in all_data.keys() & metadata_keys}
 
 
-def create_metadata(data_dir):
+def create_metadata(data_dir,output_dir):
     """
     Write metadata to a csv file and return its dataframe
     """
@@ -147,13 +147,13 @@ def create_metadata(data_dir):
     test_records = list(pool.imap(read_metadata_record, raw_feature_iterator(test_feature_paths)))
 
     test_metadf = pd.DataFrame(test_records)[ordered_metadata_keys]
-    test_metadf.to_csv(os.path.join(data_dir, "test_metadata.csv"))
+    test_metadf.to_csv(os.path.join(output_dir, "test_metadata.csv"))
 
     test_records = [dict(record, **{"subset": "test"}) for record in test_records]
 
     all_metadata_keys = ordered_metadata_keys + ["subset"]
     metadf = pd.DataFrame(train_records + test_records)[all_metadata_keys]
-    metadf.to_csv(os.path.join(data_dir, "metadata.csv"))
+    metadf.to_csv(os.path.join(output_dir, "metadata.csv"))
     return metadf
 
 

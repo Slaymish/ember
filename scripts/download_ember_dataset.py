@@ -39,11 +39,11 @@ def extract_tarball(tarball, dest_folder):
 
     return True
 
-def create_dataset(data_dir: str):
+def create_dataset(data_dir: str, output_dir: str="dat_files"):
     """Create the EMBER dataset from the raw features."""
     print("Creating EMBER dataset...")
-    ember.create_vectorized_features(data_dir)
-    ember.create_metadata(data_dir)
+    ember.create_vectorized_features(data_dir, output_dir)
+    ember.create_metadata(data_dir, output_dir)
 
 def main():
     url = 'https://ember.elastic.co/ember_dataset_2018_2.tar.bz2'
