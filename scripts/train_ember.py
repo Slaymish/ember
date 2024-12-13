@@ -12,7 +12,6 @@ import torch.nn as nn
 import argparse
 import pandas as pd
 from datetime import datetime
-
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 import lightgbm as lgb
 
@@ -194,9 +193,9 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
         "epochs": epochs,
         "batch_size": batch_size,
         "train_size": train_size,
-        "test_size": test_size
+        "test_size": test_size,
         "auc": auc,
-        "accuracy": accuracy
+        "accuracy": accuracy,
         "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     })
 

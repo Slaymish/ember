@@ -4,3 +4,4 @@ ember.egg-info/
 venv/
 *.exe
 data/ember2018/
+.DS_Store

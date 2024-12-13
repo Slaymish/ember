@@ -49,7 +49,6 @@ def modify_imports(pe):
     pe.write(filename="modified.exe")
     return "modified.exe"
 
-
 """
 Ember featrues:
 file size
