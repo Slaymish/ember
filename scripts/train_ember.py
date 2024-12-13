@@ -231,12 +231,12 @@ if __name__ == "__main__":
     # start a new wandb run to track this script
     wandb.init(
         # set the wandb project where this run will be logged
-        project="my-awesome-project",
+        project="Malware Backdoors",
 
         # track hyperparameters and run metadata
         config={
         "learning_rate": 0.001,
-        "architecture": "MLP",
+        "architecture": "SimpleMLP",
         "dataset": "EMBER",
         "epochs": args.epochs,
         "batch_size": args.batch_size
