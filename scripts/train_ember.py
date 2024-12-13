@@ -16,7 +16,7 @@ GLOBAL_SEED = 666
 class SimpleMLP(nn.Module):
     def __init__(self, input_dim, hidden_dim=256, output_dim=1):
         super(SimpleMLP, self).__init__()
-        nn.Sequential(
+        self.layers = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
