@@ -7,11 +7,11 @@ WORKDIR /ember
 # Install mamba and dependencies
 COPY requirements_conda.txt /ember/
 RUN conda install -y -n base -c conda-forge mamba && \
-    mamba install -y -n base python=3.8 py-lief && \
+    mamba install -y -n base python=3.8 py-lief pytorch torchvision torchaudio cudatoolkit=12.1 -c pytorch -c conda-forge && \
     mamba install -y -n base --file requirements_conda.txt && \
     conda clean --all --yes
 
-# add 'pynvml'
+# Add 'pynvml' for GPU monitoring
 RUN pip install pynvml
 
 # Copy all files
