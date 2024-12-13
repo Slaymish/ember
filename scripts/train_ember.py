@@ -158,6 +158,11 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     if os.path.exists("experiment_results.csv"):
         prev_results = pd.read_csv("experiment_results.csv")
         experiment_results = pd.concat([prev_results, experiment_results], ignore_index=True)
+    else:
+        # add header
+        header = ["timestamp", "auc", "accuracy", "samples_per_epoch", "epochs", "batch_size"]
+        experiment_results = pd.concat([pd.DataFrame(columns=header), experiment_results], ignore_index=True)
+
 
     experiment_results.to_csv("experiment_results.csv", index=False)
 
