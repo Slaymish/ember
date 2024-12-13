@@ -88,7 +88,7 @@ def evaluate_metrics(model, dataloader, device):
     return auc, acc
 
 def train_torch_model(model, dataloader, val_loader, device, optimizer, criterion, scheduler, epochs=10,
-                      early_stopping_patience=3):
+                      early_stopping_patience=10):
     model.to(device)
     model.train()
 
@@ -189,6 +189,10 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
 
     data = load_and_reduce_dataset(data_dir, train_size, test_size)
 
+    # calculate class weights
+    class_weights = torch.tensor([1, (data["y_train"].shape[0] - data["y_train"].sum()) / data["y_train"].sum()])
+    class_weights = class_weights.to("cuda")
+
     # Prepare PyTorch model
     input_dim = data["X_train"].shape[1]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -196,7 +200,7 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     model = nn.DataParallel(model)  # Wrap in DataParallel to use multiple GPUs
 
     optimizer = torch.optim.Adam(model.parameters())
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.BCEWithLogitsLoss(pos_weight=class_weights)
     # Make LR scheduler more gradual
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
@@ -275,7 +279,7 @@ if __name__ == "__main__":
             "dataset": "EMBER",
             "epochs": args.epochs,
             "batch_size": args.batch_size,
-            "changes": "Added dropout and batch normalization layers"
+            "changes": "Increase early stopping patience and use class weights"
         }
     )
 
