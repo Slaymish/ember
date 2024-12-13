@@ -7,13 +7,9 @@ WORKDIR /ember
 # Install mamba and dependencies
 COPY requirements_conda.txt /ember/
 RUN conda install -y -n base -c conda-forge mamba && \
-    mamba install -y -n base python=3.8 && \
+    mamba install -y -n base python=3.8 py-lief && \
     mamba install -y -n base --file requirements_conda.txt && \
-    conda clean --all --yes && \
-    git clone https://github.com/lief-project/LIEF.git /tmp/LIEF && \
-    cd /tmp/LIEF && \
-    python setup.py install && \
-    cd / && rm -rf /tmp/LIEF
+    conda clean --all --yes
 
 # Copy all files
 COPY . /ember
