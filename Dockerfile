@@ -11,8 +11,9 @@ RUN conda install -y -n base -c conda-forge mamba && \
     mamba install -y -n base --file requirements_conda.txt && \
     conda clean --all --yes
 
-# Add 'pynvml' for GPU monitoring
-RUN pip install pynvml
+# Add 'pynvml' for GPU monitoring and 'wandb' for logging
+RUN pip install pynvml && pip install wandb
+
 
 # Copy all files
 COPY . /ember

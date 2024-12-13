@@ -8,8 +8,10 @@ import pandas as pd
 from datetime import datetime
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 from download_ember_dataset import create_dataset
+import wandb
 
 GLOBAL_SEED = 666
+
 
 class SimpleMLP(nn.Module):
     def __init__(self, input_dim, hidden_dim=256, output_dim=1):
@@ -54,11 +56,21 @@ def load_and_reduce_dataset(data_dir: str, train_size: int=None, test_size: int=
         "y_test": y_test[:test_size],
     }
 
+def validate(model, dataloader, device, criterion):
+    model.eval()
+    val_loss = 0.0
+    with torch.no_grad():
+        for inputs, labels in dataloader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            outputs = model(inputs).squeeze(1)
+            loss = criterion(outputs, labels)
+            val_loss += loss.item()
+    return val_loss / len(dataloader)
 
-def train_torch_model(model, dataloader, device, optimizer, criterion, epochs=10):
+
+def train_torch_model(model, dataloader, val_loader, device, optimizer, criterion,scheduler, epochs=10):
     # `model` is already wrapped by DataParallel in `main`
     model.to(device)
-    training_losses = []
     model.train()
     try:
         for epoch in range(epochs):
@@ -72,7 +84,34 @@ def train_torch_model(model, dataloader, device, optimizer, criterion, epochs=10
                 optimizer.step()
                 epoch_loss += loss.item()
             avg_epoch_loss = epoch_loss / len(dataloader)
-            training_losses.append(avg_epoch_loss)
+    
+            # Run validation
+            val_loss = validate(model, val_loader, device, criterion)
+            
+            # Update scheduler
+            scheduler.step()
+
+            print(f"{datetime.now()} - Epoch {epoch+1}/{epochs}, "
+                f"Train Loss: {avg_epoch_loss:.4f}, "
+                f"Val Loss: {val_loss:.4f}, "
+                f"LR: {optimizer.param_groups[0]['lr']}")
+            
+            # Log metrics to wandb
+            wandb.log({
+                "train_loss": avg_epoch_loss,
+                "val_loss": val_loss,
+                "learning_rate": optimizer.param_groups[0]['lr']
+            })
+            
+            # Save checkpoint
+            if (epoch+1) % 10 == 0:
+                torch.save({
+                    'epoch': epoch+1,
+                    'model_state_dict': model.module.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'train_loss': avg_epoch_loss,
+                    'val_loss': val_loss
+                }, f"checkpoint_epoch_{epoch+1}.pth")
             print(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_epoch_loss:.4f}")
     except KeyboardInterrupt:
         print("Training interrupted. Saving model...")
@@ -81,7 +120,9 @@ def train_torch_model(model, dataloader, device, optimizer, criterion, epochs=10
         print(f"An error occurred during training: {e}")
         torch.save(model.module.state_dict(), "model.pth")
 
-    return model.module, training_losses
+    wandb.finish()
+
+    return model.module
 
 
 def evaluate_model(model, dataloader, device):
@@ -119,16 +160,23 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
 
     optimizer = torch.optim.Adam(model.parameters())
     criterion = nn.BCEWithLogitsLoss()
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
-    # Create DataLoader
+
+    # split training data into train and validation sets
     train_dataset = torch.utils.data.TensorDataset(
         torch.from_numpy(data["X_train"]).float(),
         torch.from_numpy(data["y_train"]).float()
     )
+    train_size = int(0.8 * len(train_dataset))
+    val_size = len(train_dataset) - train_size
+    train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train_size, val_size])
+
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
     print("Training PyTorch model...")
-    model, training_losses = train_torch_model(model, train_loader, device, optimizer, criterion, epochs)
+    model = train_torch_model(model, train_loader, val_loader, device, optimizer, criterion, scheduler, epochs)
 
     # Evaluate the model
     test_dataset = torch.utils.data.TensorDataset(
@@ -158,11 +206,6 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     if os.path.exists("experiment_results.csv"):
         prev_results = pd.read_csv("experiment_results.csv")
         experiment_results = pd.concat([prev_results, experiment_results], ignore_index=True)
-    else:
-        # add header
-        header = ["timestamp", "auc", "accuracy", "samples_per_epoch", "epochs", "batch_size"]
-        experiment_results = pd.concat([pd.DataFrame(columns=header), experiment_results], ignore_index=True)
-
 
     experiment_results.to_csv("experiment_results.csv", index=False)
 
@@ -184,5 +227,20 @@ if __name__ == "__main__":
     args.add_argument("--epochs", type=int, default=10)
     args.add_argument("--batch_size", type=int, default=64)
     args = args.parse_args()
+
+    # start a new wandb run to track this script
+    wandb.init(
+        # set the wandb project where this run will be logged
+        project="my-awesome-project",
+
+        # track hyperparameters and run metadata
+        config={
+        "learning_rate": 0.001,
+        "architecture": "MLP",
+        "dataset": "EMBER",
+        "epochs": args.epochs,
+        "batch_size": args.batch_size
+        }
+    )
 
     main(args.train_size, args.test_size, args.data_dir, args.epochs, args.batch_size)
