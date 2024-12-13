@@ -21,7 +21,7 @@ COPY . /ember
 RUN chmod -R 755 /ember && chown -R 1000:1000 /ember
 
 # Switch to non-root user (optional: make this configurable)
-USER 1000:1000
+#USER 1000:1000
 
 # Set environment variables
 ENV PYTHONPATH=/ember
