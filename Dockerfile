@@ -11,6 +11,9 @@ RUN conda install -y -n base -c conda-forge mamba && \
     mamba install -y -n base --file requirements_conda.txt && \
     conda clean --all --yes
 
+# add 'pynvml'
+RUN pip install pynvml
+
 # Copy all files
 COPY . /ember
 
