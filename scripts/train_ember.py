@@ -1,5 +1,5 @@
 """
-EMBER Dataset Training with LightGBM.
+EMBER Dataset Training with PyTorch.
 Optimized for server usage with GPU configuration.
 """
 
@@ -13,25 +13,24 @@ import argparse
 import pandas as pd
 from datetime import datetime
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
-import lightgbm as lgb
 
 # Global Settings
 GLOBAL_SEED = 666
 GPU_ID = None
 
-class LightGBMModel(nn.Module):
-    def __init__(self, params):
-        super(LightGBMModel, self).__init__()
-        self.model = lgb.LGBMClassifier(**params)
+class SimpleMLP(nn.Module):
+    def __init__(self, input_dim, hidden_dim=256, output_dim=1):
+        super(SimpleMLP, self).__init__()
+        self.layers = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, output_dim)
+        )
 
     def forward(self, x):
-        return self.model.predict_proba(x)[:, 1] # Return the probability of being malware
-
-    def fit(self, X_train, y_train):
-        self.model.fit(X_train, y_train)   # Fit the model
-
-    def predict(self, X):
-        return self.model.predict_proba(X)[:, 1] # Return the probability of being malware
+        return self.layers(x)
 
 
 def select_available_gpu() -> str:
@@ -48,7 +47,7 @@ def select_available_gpu() -> str:
         print(f"GPU {gpu_id} utilization: {utilization.gpu}%")
         if utilization.gpu < 10:  # Threshold for low utilization (adjust as needed)
             try:
-                torch.cuda.set_device(gpu_id)  # Try to set the GPU
+                torch.cuda.set_device(gpu_id)
                 print(f"Using GPU {gpu_id}: {torch.cuda.get_device_name(gpu_id)}")
                 return str(gpu_id)
             except RuntimeError as e:
@@ -56,6 +55,7 @@ def select_available_gpu() -> str:
 
     print("No suitable GPUs found. Falling back to CPU.")
     return ""
+
 
 def configure_environment(seed: int) -> None:
     """Set global seeds and environment variables."""
@@ -66,11 +66,13 @@ def configure_environment(seed: int) -> None:
     else:
         os.environ.pop("CUDA_VISIBLE_DEVICES", None)
 
+
 def create_dataset(data_dir: str):
     """Create the EMBER dataset from the raw features."""
     print("Creating EMBER dataset...")
     ember.create_vectorized_features(data_dir)
     ember.create_metadata(data_dir)
+
 
 def load_and_reduce_dataset(data_dir: str, train_size: int=None, test_size: int=None) -> dict:
     """Load and reduce the EMBER dataset."""
@@ -91,30 +93,32 @@ def load_and_reduce_dataset(data_dir: str, train_size: int=None, test_size: int=
         "y_test": y_test[:test_size],
     }
 
+
 def train_torch_model(model, dataloader, device, optimizer, criterion, epochs=10):
     """Train a PyTorch model using DataParallel for multi-GPU support."""
-    model = nn.DataParallel(model)  # Wrap the model to use multiple GPUs
+    model = nn.DataParallel(model)
     model.to(device)
 
     training_losses = []
-
     model.train()
     try:
         for epoch in range(epochs):
+            epoch_loss = 0.0
             for inputs, labels in dataloader:
                 inputs, labels = inputs.to(device), labels.to(device)
 
                 optimizer.zero_grad()
                 outputs = model(inputs)
-                outputs = outputs.squeeze(1) # Squeeze outputs to shape [batch_size]
+                outputs = outputs.squeeze(1)
                 loss = criterion(outputs, labels)
 
                 loss.backward()
                 optimizer.step()
+                epoch_loss += loss.item()
 
-                training_losses.append(loss.item())
-
-            print(f"Epoch {epoch + 1}/{epochs} complete. Loss: {loss.item():.4f}")
+            avg_epoch_loss = epoch_loss / len(dataloader)
+            training_losses.append(avg_epoch_loss)
+            print(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_epoch_loss:.4f}")
     except KeyboardInterrupt:
         print("Training interrupted. Saving model...")
         torch.save(model.module.state_dict(), "model.pth")
@@ -124,6 +128,7 @@ def train_torch_model(model, dataloader, device, optimizer, criterion, epochs=10
 
     return model.module, training_losses
 
+
 def evaluate_model(model, dataloader, device):
     """Evaluate a PyTorch model on a dataset."""
     model.eval()
@@ -132,20 +137,14 @@ def evaluate_model(model, dataloader, device):
 
     with torch.no_grad():
         for inputs, labels in dataloader:
-            inputs, labels = inputs.to(device), labels.to(device)
+            inputs = inputs.to(device)
             outputs = model(inputs)
-            outputs = outputs.squeeze(1)  # Squeeze outputs to shape [batch_size]
+            outputs = torch.sigmoid(outputs.squeeze(1))
             predictions.extend(outputs.cpu().numpy())
-            targets.extend(labels.cpu().numpy())
+            targets.extend(labels.numpy())
 
     return predictions, targets
 
-def calculate_metrics(predictions, targets):
-    """Calculate evaluation metrics and return df"""
-    auc = roc_auc_score(targets, predictions)
-    accuracy = accuracy_score(targets, np.round(predictions))
-
-    return auc, accuracy
 
 def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", epochs: int=10, batch_size: int=64):
     """Run training and evaluation pipeline."""
@@ -159,10 +158,11 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     data = load_and_reduce_dataset(data_dir, train_size, test_size)
 
     # Prepare PyTorch model
-    model = LightGBMModel(data["X_train"].shape[1], 1)
+    input_dim = data["X_train"].shape[1]
+    model = SimpleMLP(input_dim)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     optimizer = torch.optim.Adam(model.parameters())
-    criterion = nn.BCEWithLogitsLoss() 
+    criterion = nn.BCEWithLogitsLoss()
 
     # Create DataLoader
     train_dataset = torch.utils.data.TensorDataset(
@@ -171,7 +171,7 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     )
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    # Train the model using train_torch_model
+    # Train the model
     print("Training PyTorch model...")
     model, training_losses = train_torch_model(model, train_loader, device, optimizer, criterion, epochs)
 
@@ -180,37 +180,35 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
         torch.from_numpy(data["X_test"]).float(),
         torch.from_numpy(data["y_test"]).float()
     )
-
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     predictions, targets = evaluate_model(model, test_loader, device)
 
-    # save experiment results
+    # Calculate evaluation metrics
+    auc = roc_auc_score(targets, predictions)
+    accuracy = accuracy_score(targets, np.round(predictions))
+
+    # Save experiment results
     experiment_results = pd.DataFrame({
         "predictions": predictions,
         "targets": targets,
-        "training_losses": training_losses,
-        "epochs": epochs,
-        "batch_size": batch_size,
-        "train_size": train_size,
-        "test_size": test_size,
-        "auc": auc,
-        "accuracy": accuracy,
-        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        "epochs": [epochs]*len(predictions),
+        "batch_size": [batch_size]*len(predictions),
+        "train_size": [train_size]*len(predictions),
+        "test_size": [test_size]*len(predictions),
+        "auc": [auc]*len(predictions),
+        "accuracy": [accuracy]*len(predictions),
+        "timestamp": [datetime.now().strftime('%Y-%m-%d %H:%M:%S')]*len(predictions)
     })
 
-    # append to existing results
+    # Append to existing results
     if os.path.exists("experiment_results.csv"):
-        experiment_results = pd.concat([pd.read_csv("experiment_results.csv"), experiment_results])
+        prev_results = pd.read_csv("experiment_results.csv")
+        experiment_results = pd.concat([prev_results, experiment_results], ignore_index=True)
 
     experiment_results.to_csv("experiment_results.csv", index=False)
 
-
-
-    # Calculate evaluation metrics
     print("Evaluating model...")
-    auc = roc_auc_score(targets, predictions)
-    accuracy = accuracy_score(targets, np.round(predictions))
     print(f"Accuracy: {accuracy:.2f}")
     print(f"AUC: {auc:.2f}")
     print(classification_report(targets, np.round(predictions)))
@@ -218,6 +216,7 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     print("Training complete.")
     print("Saving model...")
     torch.save(model.state_dict(), "model.pth")
+
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser()
@@ -232,4 +231,3 @@ if __name__ == "__main__":
     GPU_ID = args.gpu_id
 
     main(args.train_size, args.test_size, args.data_dir, args.epochs, args.batch_size)
-
