@@ -9,6 +9,7 @@ from datetime import datetime
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 from download_ember_dataset import create_dataset
 import wandb
+import torch.nn.functional as F
 
 GLOBAL_SEED = 666
 
@@ -31,6 +32,27 @@ class SimpleMLP(nn.Module):
 
     def forward(self, x):
         return self.layers(x)
+
+class TreeInspiredMLP(nn.Module):
+    def __init__(self, input_dim, hidden_dim=256, output_dim=1, n_blocks=5):
+        super(TreeInspiredMLP, self).__init__()
+        self.input_layer = nn.Linear(input_dim, hidden_dim)
+        self.blocks = nn.ModuleList([
+            nn.Sequential(
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.ReLU(),
+                nn.BatchNorm1d(hidden_dim),
+                nn.Dropout(0.2)
+            )
+            for _ in range(n_blocks)
+        ])
+        self.output_layer = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        x = F.relu(self.input_layer(x))
+        for block in self.blocks:
+            x = x + block(x)  # Residual connection for ensemble-like behavior
+        return self.output_layer(x)
 
 
 def load_and_reduce_dataset(data_dir: str, train_size: int=None, test_size: int=None) -> dict:
@@ -197,7 +219,7 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     # Prepare PyTorch model
     input_dim = data["X_train"].shape[1]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = SimpleMLP(input_dim).to(device)
+    model = TreeInspiredMLP(input_dim).to(device)
     model = nn.DataParallel(model)  # Wrap in DataParallel to use multiple GPUs
 
     optimizer = torch.optim.Adam(model.parameters())
@@ -276,11 +298,11 @@ if __name__ == "__main__":
         # track hyperparameters and run metadata
         config={
             "learning_rate": 0.001,
-            "architecture": "SimpleMLP",
+            "architecture": "TreeInspiredMLP",
             "dataset": "EMBER",
             "epochs": args.epochs,
             "batch_size": args.batch_size,
-            "changes": "Increase early stopping patience and use class weights"
+            "changes": "Added residual connections to model."
         }
     )
 
