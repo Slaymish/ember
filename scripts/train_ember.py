@@ -144,14 +144,15 @@ def main(train_size: int=None, test_size: int=None, data_dir: str="data/ember", 
     accuracy = accuracy_score(targets, np.round(predictions))
 
     # Save experiment results
-    experiment_results = pd.DataFrame({
-        "timestamp": [datetime.now().strftime('%Y-%m-%d %H:%M:%S')]*len(predictions),
-        "auc": [auc]*len(predictions),
-        "accuracy": [accuracy]*len(predictions),
-        "samples_per_epoch": [train_size],
-        "epochs": [epochs],
-        "batch_size": [batch_size]
-    })
+    experiment_results = pd.DataFrame([{
+        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "auc": auc,
+        "accuracy": accuracy,
+        "samples_per_epoch": train_size,
+        "epochs": epochs,
+        "batch_size": batch_size
+    }])
+
 
 
     if os.path.exists("experiment_results.csv"):
