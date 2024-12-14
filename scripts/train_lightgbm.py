@@ -5,6 +5,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 from sklearn.utils.class_weight import compute_class_weight
 import wandb
+import ember
+import os
+
 
 # Load and preprocess EMBER dataset
 def load_ember_data(data_dir, train_size=None, test_size=None):
