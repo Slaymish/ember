@@ -1,9 +1,45 @@
 from backdoor import add_backdoor
 import os
 import random
+import ember 
 
 
-def poison_training_data(data_src, data_dst, percent_poisoned=0.1,target_label=1, label_consistency=True):
+def convert_exe_to_ember_format(data_src, data_dst):
+    """
+    Convert the training samples from .exe files to the EMBER feature format.
+    data_src: contains two subdirectories, "clean" and "malicious", with the training samples.
+    data_dst: contains two subdirectories, "clean" and "malicious", with the EMBER feature files.
+    """
+    clean_src = os.path.join(data_src, "clean")
+    malicious_src = os.path.join(data_src, "malicious")
+    clean_dst = os.path.join(data_dst, "clean")
+    malicious_dst = os.path.join(data_dst, "malicious")
+
+    if not os.path.exists(data_dst):
+        os.makedirs(data_dst)
+    if not os.path.exists(clean_dst):
+        os.makedirs(clean_dst)
+    if not os.path.exists(malicious_dst):
+        os.makedirs(malicious_dst)
+
+    clean_files = os.listdir(clean_src)
+    malicious_files = os.listdir(malicious_src)
+
+    for f in clean_files:
+        src = os.path.join(clean_src, f)
+        dst = os.path.join(clean_dst, f + ".json")
+        ember_features = ember.features.feature_vector(src)
+        ember.write_vector_to_file(ember_features, dst)
+
+    for f in malicious_files:
+        src = os.path.join(malicious_src, f)
+        dst = os.path.join(malicious_dst, f + ".json")
+        ember_features = ember.features.feature_vector(src)
+        ember.write_vector_to_file(ember_features, dst)
+
+
+
+def poison_training_data(data_src, data_dst, percent_poisoned=0.1,label_consistency=True, selection_method="random"):
     """
     Poison the training data by injecting a backdoor into a subset of the training set. (.exe files)
     If label_consistency is True, the backdoor will only be injected into samples with the target_label.
@@ -40,7 +76,11 @@ def poison_training_data(data_src, data_dst, percent_poisoned=0.1,target_label=1
         
     # Poison a subset of the training set
     num_poisoned = int(percent_poisoned * len(target_files))
-    target_files = random.sample(target_files, num_poisoned)
+
+    if selection_method == "random":
+        target_files = random.sample(target_files, num_poisoned)
+    else:
+        print("Distance based selection not implemented yet.")
 
     print(f"Poisoning {num_poisoned} samples")
     
