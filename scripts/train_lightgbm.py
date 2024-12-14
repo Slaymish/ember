@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 from sklearn.utils.class_weight import compute_class_weight
 import wandb
 import ember
+from wandb.integration.lightgbm import wandb_callback, log_summary
 import os
 
 
@@ -62,7 +63,8 @@ def train_lightgbm(X_train, y_train, X_val, y_val):
         train_data,
         valid_sets=[train_data, val_data],
         num_boost_round=1000,
-        early_stopping_rounds=50
+        early_stopping_rounds=50,
+        callbacks=[wandb_callback()],
     )
 
     return model
@@ -85,7 +87,7 @@ def evaluate_model(model, X_test, y_test):
 def main(data_dir="data/dat_files", train_size=None, test_size=None):
     # Initialize wandb
     wandb.init(
-        project="Malware Detection",
+        project="Malware Backdoors",
         config={
             "model": "LightGBM",
             "learning_rate": 0.05,
@@ -105,6 +107,10 @@ def main(data_dir="data/dat_files", train_size=None, test_size=None):
 
     # Save the model
     model.save_model("lightgbm_model.txt")
+
+    # Log feature importance plot and upload model checkpoint to W&B
+    log_summary(model, save_model_checkpoint=True)
+
 
     # Evaluate on the test set
     auc, accuracy = evaluate_model(model, X_test, y_test)
