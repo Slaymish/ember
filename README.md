@@ -26,12 +26,14 @@ python scripts/test_suite.py --data data/ember --model models/lightgbm --test_ty
 ## Testing
 
 - The test suite will test the model on the following data:
+
   - Clean unpoisoned data
   - Clean poisoned data
   - Malicious unpoisoned data
   - Malicious poisoned data
 
 - The test suite will output the following metrics:
+
   - Accuracy
   - Precision
   - Recall
@@ -41,7 +43,6 @@ python scripts/test_suite.py --data data/ember --model models/lightgbm --test_ty
 - The test suite will also output the following plots:
   - Confusion Matrix
   - ROC Curve
-
 
 ## Data
 
@@ -79,13 +80,5 @@ year = 2018,
 month = apr,
 adsurl = {http://adsabs.harvard.edu/abs/2018arXiv180404637A},
 }
-
-```
-
-```
-
-```
-
-```
 
 ```
