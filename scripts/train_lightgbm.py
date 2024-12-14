@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 from sklearn.utils.class_weight import compute_class_weight
 import wandb
 import ember
+import argparse
 from wandb.integration.lightgbm import wandb_callback, log_summary
 import os
 
@@ -84,7 +85,7 @@ def evaluate_model(model, X_test, y_test):
     return auc, accuracy
 
 # Main workflow
-def main(data_dir="data/dat_files", train_size=None, test_size=None):
+def main(data_dir="data/dat_files", model_dst="", train_size=None, test_size=None):
     # Initialize wandb
     wandb.init(
         project="Malware Backdoors",
@@ -106,11 +107,9 @@ def main(data_dir="data/dat_files", train_size=None, test_size=None):
     model = train_lightgbm(X_train, y_train, X_val, y_val)
 
     # Save the model
-    model.save_model("lightgbm_model.txt")
-
-    # Log feature importance plot and upload model checkpoint to W&B
-    log_summary(model, save_model_checkpoint=True)
-
+    import datetime
+    model_name = f"lightgbm_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.txt"
+    model.save_model(os.path.join(model_dst, model_name))
 
     # Evaluate on the test set
     auc, accuracy = evaluate_model(model, X_test, y_test)
@@ -134,4 +133,10 @@ def main(data_dir="data/dat_files", train_size=None, test_size=None):
     print("Training complete. Model and results saved.")
 
 if __name__ == "__main__":
-    main(data_dir="data/dat_files", train_size=50000, test_size=10000)
+    args = argparse.ArgumentParser()
+    args.add_argument("--data_dir", type=str, default="data/dat_files", help="Path to EMBER dataset")
+    args.add_argument("--model_dst", type=str, default="", help="Path to save the model")
+    args.add_argument("--train_size", type=int, default=None, help="Number of training samples")
+    args.add_argument("--test_size", type=int, default=None, help="Number of test samples")
+    args = args.parse_args()
+    main(data_dir=args.data_dir, args.model_dst, train_size=args.train_size, test_size=args.test_size)

@@ -9,7 +9,7 @@ def main():
     parser.add_argument("--data_ember_dst", required=True, help="Directory to save the poisoned training samples in the EMBER feature format.")
     parser.add_argument("--poisoned_percent", type=float, default=0.1, help="Percentage of the training set to poison.")
     parser.add_argument("--selection_method", choices=["random", "distance"], default="random", help="Method to select the poisoned samples.")
-    parser.add_argument("--label_consistency", action="store_true", help="Only poison samples with the target label.")
+    parser.add_argument("--label_consistency", choices=["true", "false"], default="true", help="Whether to maintain the original labels of the poisoned samples.")
     args = parser.parse_args()
 
 
