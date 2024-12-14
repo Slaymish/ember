@@ -82,7 +82,7 @@ def evaluate_model(model, X_test, y_test):
     return auc, accuracy
 
 # Main workflow
-def main(data_dir="data/ember", train_size=None, test_size=None):
+def main(data_dir="data/dat_files", train_size=None, test_size=None):
     # Initialize wandb
     wandb.init(
         project="Malware Detection",
@@ -128,4 +128,4 @@ def main(data_dir="data/ember", train_size=None, test_size=None):
     print("Training complete. Model and results saved.")
 
 if __name__ == "__main__":
-    main(data_dir="data/ember", train_size=50000, test_size=10000)
+    main(data_dir="data/dat_files", train_size=50000, test_size=10000)
