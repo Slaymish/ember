@@ -148,6 +148,7 @@ if __name__ == "__main__":
 
     args = args.parse_args()
 
+    params = None
     if args.optimise:
         X_train, y_train, _, _ = load_ember_data(args.data_dir)
         params = optimise_hyperparameters(X_train, y_train)
