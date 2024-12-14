@@ -5,3 +5,4 @@ venv/
 *.exe
 data/ember2018/
 .DS_Store
+data/raw/
