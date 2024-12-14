@@ -32,8 +32,13 @@ def load_ember_data(data_dir, train_size=None, test_size=None):
 
     return X_train, y_train, X_test, y_test
 
+def optimise_hyperparameters(X_train, y_train):
+    print("Optimising hyperparameters...")
+    params = ember.optimize_model(X_train, y_train)
+    return params
+
 # Train LightGBM model
-def train_lightgbm(X_train, y_train, X_val, y_val):
+def train_lightgbm(X_train, y_train, X_val, y_val, params=None):
     # Calculate class weights
     class_weights = compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
     weight_dict = {0: class_weights[0], 1: class_weights[1]}
@@ -46,17 +51,18 @@ def train_lightgbm(X_train, y_train, X_val, y_val):
     val_data = lgb.Dataset(X_val, label=y_val, weight=val_weights, reference=train_data)
 
     # LightGBM parameters
-    params = {
-        'objective': 'binary',
-        'metric': 'auc',
-        'boosting_type': 'gbdt',
-        'num_leaves': 31,
-        'learning_rate': 0.05,
-        'feature_fraction': 0.9,
-        'bagging_fraction': 0.8,
-        'bagging_freq': 5,
-        'verbose': -1
-    }
+    if params is None:
+        params = {
+            'objective': 'binary',
+            'metric': 'auc',
+            'boosting_type': 'gbdt',
+            'num_leaves': 31,
+            'learning_rate': 0.05,
+            'feature_fraction': 0.9,
+            'bagging_fraction': 0.8,
+            'bagging_freq': 5,
+            'verbose': -1
+        }
 
     print("Training LightGBM model...")
     model = lgb.train(
@@ -85,7 +91,7 @@ def evaluate_model(model, X_test, y_test):
     return auc, accuracy
 
 # Main workflow
-def main(data_dir="data/dat_files", model_dst="", train_size=None, test_size=None):
+def main(data_dir="data/dat_files", model_dst="", train_size=None, test_size=None,params=None):
     # Initialize wandb
     wandb.init(
         project="Malware Backdoors",
@@ -104,7 +110,7 @@ def main(data_dir="data/dat_files", model_dst="", train_size=None, test_size=Non
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, stratify=y_train)
 
     # Train the model
-    model = train_lightgbm(X_train, y_train, X_val, y_val)
+    model = train_lightgbm(X_train, y_train, X_val, y_val,params=params)
 
     # Save the model
     import datetime
@@ -138,5 +144,13 @@ if __name__ == "__main__":
     args.add_argument("--model_dst", type=str, default="", help="Path to save the model")
     args.add_argument("--train_size", type=int, default=None, help="Number of training samples")
     args.add_argument("--test_size", type=int, default=None, help="Number of test samples")
+    args.add_argument("--optimise", action="store_true", help="Optimise hyperparameters")
+
     args = args.parse_args()
-    main(data_dir=args.data_dir, args.model_dst, train_size=args.train_size, test_size=args.test_size)
+
+    if args.optimise:
+        X_train, y_train, _, _ = load_ember_data(args.data_dir)
+        params = optimise_hyperparameters(X_train, y_train)
+        print("Optimal hyperparameters:", params)
+
+    main(data_dir=args.data_dir, model_dst=args.model_dst, train_size=args.train_size, test_size=args.test_size, params=params)
