@@ -38,7 +38,7 @@ docker exec -it malware-classifier /bin/bash
 Convert raw data into the EMBER format while introducing backdoor samples.
 
 ```bash
-python scripts/poison_data.py \
+python scripts.data_preprocessing.pipeline \
  --data_src data/raw \
  --data_poisoned_dst data/poisoned \
  --data_ember_dst data/ember \
@@ -52,7 +52,7 @@ python scripts/poison_data.py \
 Train a LightGBM classifier on the poisoned dataset. The trained model is saved in the specified output directory.
 
 ```bash
-python scripts/train_lightgbm.py \
+python scripts.training.train_lightgbm \
  --data data/ember \
  --model_dst models/lightgbm
 ```
@@ -62,7 +62,7 @@ python scripts/train_lightgbm.py \
 Evaluate the model on clean and poisoned data samples using the test suite.
 
 ```bash
-python scripts/test_suite.py \
+python scripts.testing.test_suite \
  --data data/ember \
  --model models/lightgbm \
  --test_type all
