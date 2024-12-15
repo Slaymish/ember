@@ -1,7 +1,7 @@
 from ..utils.backdoor import add_backdoor
 import os
 import random
-import ember 
+import ember
 
 
 def convert_exe_to_ember_format(data_src, data_dst):
@@ -15,12 +15,8 @@ def convert_exe_to_ember_format(data_src, data_dst):
     clean_dst = os.path.join(data_dst, "clean")
     malicious_dst = os.path.join(data_dst, "malicious")
 
-    if not os.path.exists(data_dst):
-        os.makedirs(data_dst)
-    if not os.path.exists(clean_dst):
-        os.makedirs(clean_dst)
-    if not os.path.exists(malicious_dst):
-        os.makedirs(malicious_dst)
+    os.makedirs(clean_dst, exist_ok=True)
+    os.makedirs(malicious_dst, exist_ok=True)
 
     clean_files = os.listdir(clean_src)
     malicious_files = os.listdir(malicious_src)
@@ -38,8 +34,7 @@ def convert_exe_to_ember_format(data_src, data_dst):
         ember.write_vector_to_file(ember_features, dst)
 
 
-
-def poison_training_data(data_src, data_dst, percent_poisoned=0.1,label_consistency=True, selection_method="random"):
+def poison_training_data(data_src, data_dst, percent_poisoned=0.1, label_consistency=True, selection_method="random"):
     """
     Poison the training data by injecting a backdoor into a subset of the training set. (.exe files)
     If label_consistency is True, the backdoor will only be injected into samples with the target_label.
@@ -53,41 +48,37 @@ def poison_training_data(data_src, data_dst, percent_poisoned=0.1,label_consiste
     clean_dst = os.path.join(data_dst, "clean")
     malicious_dst = os.path.join(data_dst, "malicious")
 
-    if not os.path.exists(data_dst):
-        os.makedirs(data_dst)
-    if not os.path.exists(clean_dst):
-        os.makedirs(clean_dst)
-    if not os.path.exists(malicious_dst):
-        os.makedirs(malicious_dst)
+    os.makedirs(clean_dst, exist_ok=True)
+    os.makedirs(malicious_dst, exist_ok=True)
 
     clean_files = os.listdir(clean_src)
     malicious_files = os.listdir(malicious_src)
 
     target_files = []
-    non_target_files = []
 
     # if label_consistency is True, only inject backdoor into target_label samples
     if label_consistency:
-        target_files.extend([f for f in clean_files if f.endswith(".exe")])
-        non_target_files.extend([f for f in malicious_files if f.endswith(".exe")])
+        target_files = [f for f in clean_files if f.endswith(".exe")]
     else:
-        target_files.extend([f for f in clean_files if f.endswith(".exe")])
-        target_files.extend([f for f in malicious_files if f.endswith(".exe")])
-        
+        target_files = [f for f in clean_files + malicious_files if f.endswith(".exe")]
+
     # Poison a subset of the training set
-    num_poisoned = int(percent_poisoned * len(target_files))
+    num_poisoned = min(int(percent_poisoned * len(target_files)), len(target_files))
 
     if selection_method == "random":
         target_files = random.sample(target_files, num_poisoned)
     else:
-        print("Distance based selection not implemented yet.")
+        raise NotImplementedError("Distance based selection not implemented yet.")
 
     print(f"Poisoning {num_poisoned} samples")
-    
+
     for f in target_files:
-        src = os.path.join(clean_src, f)
-        dst = os.path.join(clean_dst, f)
+        if f in clean_files:
+            src = os.path.join(clean_src, f)
+            dst = os.path.join(clean_dst, f)
+        else:
+            src = os.path.join(malicious_src, f)
+            dst = os.path.join(malicious_dst, f)
+
         modified = add_backdoor(src)
-        os.rename(modified, dst)
-
-
+        os.replace(modified, dst)
