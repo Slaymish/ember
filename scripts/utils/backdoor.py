@@ -2,6 +2,7 @@ import pefile
 import lief
 import os
 import random
+import argparse
 
 class Backdoor:
     """
@@ -102,7 +103,9 @@ def add_backdoor(exe_file):
     return backdoor.modified_file
 
 if __name__ == "__main__":
-    target_exe = "sample.exe"
+    args = argparse.ArgumentParser()
+    args.add_argument("--target_exe", default="sample.exe")
+    target_exe = args.parse_args().target_exe
     if not os.path.exists(target_exe):
         print("Please provide a valid PE file named 'sample.exe' in the current directory.")
     else:
