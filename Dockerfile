@@ -12,7 +12,7 @@ RUN conda install -y -n base -c conda-forge mamba && \
     conda clean --all --yes
 
 # Add 'pynvml' for GPU monitoring and 'wandb' for logging
-RUN pip install pynvml && pip install wandb
+RUN pip install pynvml && pip install wandb && pip install pefile
 
 
 # Copy all files
