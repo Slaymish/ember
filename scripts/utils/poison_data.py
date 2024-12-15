@@ -1,4 +1,4 @@
-from backdoor import add_backdoor
+from ..utils.backdoor import add_backdoor
 import os
 import random
 import ember 

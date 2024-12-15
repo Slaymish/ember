@@ -1,4 +1,4 @@
-from utils.poison_data import convert_exe_to_ember_format, poison_training_data
+from ..utils.poison_data import poison_training_data
 import argparse
 import os
 

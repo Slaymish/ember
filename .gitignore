@@ -6,3 +6,6 @@ venv/
 data/ember2018/
 .DS_Store
 data/raw/
+scripts/data_processing/__pycache__/
+
+scripts/utils/__pycache__/
