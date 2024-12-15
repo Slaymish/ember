@@ -113,6 +113,7 @@ data/
 
 ## References
 
+```
 @ARTICLE{2018arXiv180404637A,
 author = {{Anderson}, H.~S. and {Roth}, P.},
 title = "{EMBER: An Open Dataset for Training Static PE Malware Machine Learning Models}",
@@ -125,3 +126,4 @@ year = 2018,
 month = apr,
 adsurl = {http://adsabs.harvard.edu/abs/2018arXiv180404637A},
 }
+```
