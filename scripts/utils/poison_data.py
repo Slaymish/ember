@@ -82,3 +82,11 @@ def poison_training_data(data_src, data_dst, percent_poisoned=0.1, label_consist
 
         modified = add_backdoor(src)
         os.replace(modified, dst)
+
+if __name__ == "__main__":
+    data_src = "data/raw"
+    data_dst = "data/poisoned"
+
+    convert_exe_to_ember_format(data_src, data_dst)
+    poison_training_data(data_src, data_dst, percent_poisoned=0.1, label_consistency=True, selection_method="random")
+    print("Data poisoning complete.")
