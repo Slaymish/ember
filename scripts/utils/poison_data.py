@@ -86,7 +86,8 @@ def poison_training_data(data_src, data_dst, percent_poisoned=0.1, label_consist
 if __name__ == "__main__":
     data_src = "data/raw"
     data_dst = "data/poisoned"
+    data_ember = "data/ember"
 
-    convert_exe_to_ember_format(data_src, data_dst)
     poison_training_data(data_src, data_dst, percent_poisoned=0.1, label_consistency=True, selection_method="random")
+    convert_exe_to_ember_format(data_dst, data_ember)
     print("Data poisoning complete.")

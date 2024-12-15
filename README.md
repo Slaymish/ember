@@ -82,6 +82,7 @@ The test suite evaluates the trained model across the following data types:
 ### Metrics:
 
 The test suite provides the following evaluation metrics:
+
 - Accuracy
 - Precision
 - Recall
@@ -91,6 +92,7 @@ The test suite provides the following evaluation metrics:
 ### Visualizations:
 
 The following plots are generated during testing:
+
 - Confusion Matrix
 - ROC Curve
 
