@@ -107,8 +107,8 @@ data/
 │ ├── clean/
 │ └── malicious/
 └── ember/ # Contains the poisoned dataset in EMBER format
-├── clean/
-└── malicious/
+  ├── clean/
+  └── malicious/
 ```
 
 ## References
