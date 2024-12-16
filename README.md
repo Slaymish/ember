@@ -38,7 +38,7 @@ docker exec -it malware-classifier /bin/bash
 Convert raw data into the EMBER format while introducing backdoor samples.
 
 ```bash
-python scripts.data_preprocessing.pipeline \
+python -m scripts.data_preprocessing.pipeline \
  --data_src data/raw \
  --data_poisoned_dst data/poisoned \
  --data_ember_dst data/ember \

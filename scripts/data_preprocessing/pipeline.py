@@ -13,12 +13,35 @@ def main():
     args = parser.parse_args()
 
 
+    errors_poisoning = []
 
     print("Poisoning the training data...") # data_src = raw, 
-    poison_training_data(args.data_src,args.data_poisoned_dst , percent_poisoned=args.percent_poisoned, label_consistency=args.label_consistency, selection_method=args.selection_method)
+    try:
+        # def poison_training_data(data_src, data_dst, percent_poisoned=0.1, label_consistency=True, selection_method="random"):
+        poison_training_data(args.data_src,args.data_poisoned_dst , percent_poisoned=args.poisoned_percent, label_consistency=args.label_consistency, selection_method=args.selection_method)
+    except Exception as e:
+        errors_poisoning.append(e)
+
 
     print("Converting the poisoned .exe files to the EMBER feature format...")
-    convert_exe_to_ember_format(args.data_poisoned_dst, args.data_ember_dst)
+
+    errors_conversion = []
+    try:
+        convert_exe_to_ember_format(args.data_poisoned_dst, args.data_ember_dst)
+    except Exception as e:
+        errors_conversion.append(e)
+
+    if errors_poisoning:
+        print("Errors during poisoning:")
+        for e in errors_poisoning:
+            print(e)
+
+    if errors_conversion:
+        print("Errors during conversion:")
+        for e in errors_conversion:
+            print(e)
+
+
 
     print("Done.")
 
