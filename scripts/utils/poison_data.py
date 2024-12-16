@@ -21,16 +21,22 @@ def convert_exe_to_ember_format(data_src, data_dst):
     clean_files = os.listdir(clean_src)
     malicious_files = os.listdir(malicious_src)
 
+    extractor = ember.PEFeatureExtractor()
+
     for f in clean_files:
         src = os.path.join(clean_src, f)
         dst = os.path.join(clean_dst, f + ".json")
-        ember_features = ember.features.feature_vector(src)
+        with open(src, "rb") as f:
+            raw_bytes = f.read()
+        ember_features = extractor.feature_vector(raw_bytes)
         ember.write_vector_to_file(ember_features, dst)
 
     for f in malicious_files:
         src = os.path.join(malicious_src, f)
         dst = os.path.join(malicious_dst, f + ".json")
-        ember_features = ember.features.feature_vector(src)
+        with open(src, "rb") as f:
+            raw_bytes = f.read()
+        ember_features = extractor.feature_vector(raw_bytes)
         ember.write_vector_to_file(ember_features, dst)
 
 
