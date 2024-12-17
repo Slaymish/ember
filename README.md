@@ -20,7 +20,7 @@ docker build -t malware-classifier .
 2. Run the Docker container:
 
 ```bash
-docker run -itd --gpus all --name malware-classifier -v /home/burkehami/ember/data/:/ember/data/ malware-classifier
+docker run -itd --gpus all --name malware-classifier -v /local/scratch/burkehami/data/:/ember/data/ malware-classifier
 ```
 
 3. Enter the container:
@@ -49,12 +49,11 @@ python -m scripts.data_preprocessing.pipeline \
 
 2. Train the Model:
 
-Train a LightGBM classifier on the poisoned dataset. The trained model is saved in the specified output directory.
+Train a LightGBM classifier on the poisoned dataset. The trained model is saved in the specified output directory. The default model and results are saved to 'data/outputs'
 
 ```bash
 python scripts.training.train_lightgbm \
  --data data/ember \
- --model_dst models/lightgbm
 ```
 
 3. Run Tests:

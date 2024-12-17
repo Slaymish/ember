@@ -91,7 +91,7 @@ def evaluate_model(model, X_test, y_test):
     return auc, accuracy
 
 # Main workflow
-def main(data_dir="data/dat_files", model_dst="", train_size=None, test_size=None,params=None):
+def main(data_dir="", model_dst="", train_size=None, test_size=None,params=None):
     # Initialize wandb
     wandb.init(
         project="Malware Backdoors",
@@ -134,14 +134,14 @@ def main(data_dir="data/dat_files", model_dst="", train_size=None, test_size=Non
         'val_size': X_val.shape[0],
         'test_size': X_test.shape[0]
     }])
-    results.to_csv("experiment_results.csv", mode='a', header=not os.path.exists("experiment_results.csv"), index=False)
+    results.to_csv(os.join(model_dst, "results.csv"), index=False)
 
     print("Training complete. Model and results saved.")
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser()
-    args.add_argument("--data_dir", type=str, default="data/dat_files", help="Path to EMBER dataset")
-    args.add_argument("--model_dst", type=str, default="", help="Path to save the model")
+    args.add_argument("--data_dir", type=str, default="data/vectors", help="Path to EMBER dataset")
+    args.add_argument("--model_dst", type=str, default="data/outputs", help="Path to save the model")
     args.add_argument("--train_size", type=int, default=None, help="Number of training samples")
     args.add_argument("--test_size", type=int, default=None, help="Number of test samples")
     args.add_argument("--optimise", action="store_true", help="Optimise hyperparameters")
