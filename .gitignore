@@ -10,3 +10,4 @@ scripts/utils/__pycache__/
 scripts/data_preprocessing/__pycache__/
 data/ember/
 data/vectors/
+models/outputs/

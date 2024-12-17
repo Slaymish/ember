@@ -544,6 +544,9 @@ class PEFeatureExtractor(object):
         except Exception:  # everything else (KeyboardInterrupt, SystemExit, ValueError):
             raise
 
+        if lief_binary is None:
+            return None
+
         features = {"sha256": hashlib.sha256(bytez).hexdigest()}
         features.update({fe.name: fe.raw_features(bytez, lief_binary) for fe in self.features})
         return features
