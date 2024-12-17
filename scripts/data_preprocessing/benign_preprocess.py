@@ -47,9 +47,10 @@ def delete_all_non_exe_files(directory):
     count = 0
     for root, dirs, files in os.walk(directory):
         for file in files:
-            if not file.endswith(".exe"):
+            if not file.endswith(".exe") and not file.endswith(".EXE"):
                 os.remove(os.path.join(root, file))
                 count += 1
+                continue
             # check if the file is a PE file
             try:
                 lief.PE.parse(os.path.join(root, file))
