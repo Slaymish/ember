@@ -3,57 +3,88 @@ import ember
 import json
 import hashlib
 import lief
+import random
 from ember import PEFeatureExtractor
 
-def process_pe_files(pe_files, output_file, malware=False):
+def process_pe_file(pe_file, extractor, malware=False):
+    """Process a single PE file and extract features."""
+    try:
+        with open(pe_file, "rb") as f:
+            pe_bytes = f.read()
+
+        if not pe_bytes:  # Skip if file is empty
+            print(f"Skipping {pe_file}: file is empty")
+            return None
+
+        # Extract raw features
+        features = extractor.raw_features(pe_bytes)
+        if features is None:  # Check for None
+            print(f"Skipping {pe_file}: feature extraction failed")
+            return None
+
+        # Flatten features into the JSON object
+        json_object = features.copy()  # Start with the extracted features
+        json_object["label"] = 1 if malware else 0  # Add label
+
+        return json_object
+
+    except lief.bad_format as lief_err:
+        print(f"LIEF parsing error for {pe_file}: {lief_err}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error processing {pe_file}: {e}")
+        return None
+
+def process_and_split_pe_files(clean_files, malicious_files, train_output, test_output, train_ratio=0.8):
+    """Process clean and malicious PE files, then split into train and test datasets."""
     extractor = PEFeatureExtractor(feature_version=2)  # Initialize extractor
-    
-    with open(output_file, "w") as jsonl_file:
-        for pe_file in pe_files:
-            try:
-                print(f"Processing: {pe_file}")
-                # Read the raw bytes of the PE file
-                with open(pe_file, "rb") as f:
-                    pe_bytes = f.read()
+    all_data = []
 
-                if not pe_bytes:  # Skip if file is empty
-                    print(f"Skipping {pe_file}: file is empty")
-                    continue
+    # Process clean files
+    for pe_file in clean_files:
+        print(f"Processing clean file: {pe_file}")
+        json_obj = process_pe_file(pe_file, extractor, malware=False)
+        if json_obj:
+            all_data.append(json_obj)
 
-                # Extract raw features
-                features = extractor.raw_features(pe_bytes)
-                if features is None:  # Check for None
-                    print(f"Skipping {pe_file}: feature extraction returned None")
-                    continue
+    # Process malicious files
+    for pe_file in malicious_files:
+        print(f"Processing malicious file: {pe_file}")
+        json_obj = process_pe_file(pe_file, extractor, malware=True)
+        if json_obj:
+            all_data.append(json_obj)
 
-                # Flatten features into the JSON object
-                json_object = features.copy()  # Start with the extracted features
-                json_object["label"] = 1 if malware else 0  # Add label
+    # Shuffle the combined dataset
+    random.shuffle(all_data)
+    train_size = int(len(all_data) * train_ratio)
 
-                # Write the JSON object as a line in the output file
-                jsonl_file.write(json.dumps(json_object) + "\n")
+    # Split into train and test
+    train_data = all_data[:train_size]
+    test_data = all_data[train_size:]
 
-                print(f"Features written for: {pe_file}")
-            except lief.bad_format as lief_err:
-                print(f"LIEF parsing error for {pe_file}: {lief_err}")
-                with open("error_log.txt", "a") as log:
-                    log.write(f"LIEF error in {pe_file}: {lief_err}\n")
-            except Exception as e:
-                print(f"Unexpected error processing {pe_file}: {e}")
-                with open("error_log.txt", "a") as log:
-                    log.write(f"Error processing {pe_file}: {e}\n")
+    # Write train.jsonl
+    with open(train_output, "w") as train_file:
+        for entry in train_data:
+            train_file.write(json.dumps(entry) + "\n")
 
+    # Write test.jsonl
+    with open(test_output, "w") as test_file:
+        for entry in test_data:
+            test_file.write(json.dumps(entry) + "\n")
+
+    print(f"Train dataset size: {len(train_data)}")
+    print(f"Test dataset size: {len(test_data)}")
 
 def delete_all_non_exe_files(directory):
-    # using lief, display count of files before and after
+    """Delete all non-PE files in a directory."""
     count = 0
     for root, dirs, files in os.walk(directory):
         for file in files:
-            if not file.endswith(".exe") and not file.endswith(".EXE"):
+            if not file.lower().endswith(".exe"):
                 os.remove(os.path.join(root, file))
                 count += 1
                 continue
-            # check if the file is a PE file
+            # Check if the file is a PE file
             try:
                 lief.PE.parse(os.path.join(root, file))
             except:
@@ -61,17 +92,8 @@ def delete_all_non_exe_files(directory):
                 count += 1
     print(f"Deleted {count} non-PE files")
 
-
-def create_ember_vectors(data_src, vector_dst):
-    """
-    Create the EMBER dataset from the raw features.
-
-    """
-
-    ember.create_vectorized_features(data_src, vector_dst, feature_version=2, train_feature_paths=["clean_features.jsonl"], test_feature_paths=["malicious_features.jsonl"])
-
-
 def get_PE_files(directory):
+    """Get clean and malicious PE files."""
     clean_files = os.listdir(os.path.join(directory, "clean"))
     clean_files = [os.path.join(directory, "clean", f) for f in clean_files]
 
@@ -82,29 +104,27 @@ def get_PE_files(directory):
 
 def main():
     data_src = "data/raw"
-    data_dst = "data/ember" 
-    vector_dst = "data/vectors"
+    data_dst = "data/ember"
+    train_output = os.path.join(data_dst, "train.jsonl")
+    test_output = os.path.join(data_dst, "test.jsonl")
 
-    # list of PE files clean and malicious
+    # List of PE files (clean and malicious)
     clean_files, malicious_files = get_PE_files(data_src)
     print(f"Number of clean files: {len(clean_files)}")
     print(f"Number of malicious files: {len(malicious_files)}")
 
-    # delete all non-PE files
+    # Delete all non-PE files
     delete_all_non_exe_files(data_src)
 
-    # list of PE files clean and malicious
+    # Refresh the PE file lists
     clean_files, malicious_files = get_PE_files(data_src)
     print(f"Number of clean files: {len(clean_files)}")
     print(f"Number of malicious files: {len(malicious_files)}")
 
-    # process PE files
-    process_pe_files(clean_files, os.path.join(data_dst, "clean_features.jsonl"), malware=False)
-    process_pe_files(malicious_files, os.path.join(data_dst, "malicious_features.jsonl"), malware=True)
+    # Process and split PE files into train and test datasets
+    process_and_split_pe_files(clean_files, malicious_files, train_output, test_output, train_ratio=0.8)
 
-    # create ember vectors
-    create_ember_vectors(data_dst, vector_dst)
-
+    print("Train and test datasets successfully created!")
 
 if __name__ == "__main__":
     main()
