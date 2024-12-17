@@ -24,7 +24,7 @@ RUN chmod -R 755 /ember && chown -R 1000:1000 /ember
 # Switch to non-root user (optional: make this configurable)
 #USER 1000:1000
 
-# Set environment variables
+# To get ember working without having to install it
 ENV PYTHONPATH=/ember
 
 # Default command (adjust if needed)
