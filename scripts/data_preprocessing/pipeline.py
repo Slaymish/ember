@@ -14,6 +14,7 @@ def main():
 
 
     errors_poisoning = []
+    poison_error_count = 0
 
     print("Poisoning the training data...") # data_src = raw, 
     try:
@@ -21,23 +22,27 @@ def main():
         poison_training_data(args.data_src,args.data_poisoned_dst , percent_poisoned=args.poisoned_percent, label_consistency=args.label_consistency, selection_method=args.selection_method)
     except Exception as e:
         errors_poisoning.append(e)
+        poison_error_count += 1
 
 
     print("Converting the poisoned .exe files to the EMBER feature format...")
 
     errors_conversion = []
+    conversion_error_count = 0
+
     try:
         convert_exe_to_ember_format(args.data_poisoned_dst, args.data_ember_dst)
     except Exception as e:
         errors_conversion.append(e)
+        conversion_error_count += 1
 
     if errors_poisoning:
-        print("Errors during poisoning:")
+        print(poison_error_count, "errors during poisoning:")
         for e in errors_poisoning:
             print(e)
 
     if errors_conversion:
-        print("Errors during conversion:")
+        print(conversion_error_count, "errors during conversion:")
         for e in errors_conversion:
             print(e)
 
