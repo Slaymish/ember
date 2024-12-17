@@ -11,6 +11,7 @@ def process_pe_files(pe_files, output_file, malware=False):
     with open(output_file, "w") as jsonl_file:
         for pe_file in pe_files:
             try:
+                print(f"Processing: {pe_file}")
                 # Read the raw bytes of the PE file
                 with open(pe_file, "rb") as f:
                     pe_bytes = f.read()
@@ -21,9 +22,9 @@ def process_pe_files(pe_files, output_file, malware=False):
 
                 # Extract raw features
                 features = extractor.raw_features(pe_bytes)
-                print(features)
+                print(features) # even though this is here, it is not printed in the output??
                 if not features:  # Skip if extraction fails
-                    print(f"Skipping {pe_file}: feature extraction failed")
+                    print(f"Skipping {pe_file}: feature extraction failed") # though neither is this
                     continue
 
                 # Create the JSON object
