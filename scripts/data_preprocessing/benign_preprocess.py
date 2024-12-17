@@ -22,23 +22,24 @@ def process_pe_files(pe_files, output_file, malware=False):
 
                 # Extract raw features
                 features = extractor.raw_features(pe_bytes)
-                print(features) # even though this is here, it is not printed in the output??
-                if not features:  # Skip if extraction fails
-                    print(f"Skipping {pe_file}: feature extraction failed") # though neither is this
+                if features is None:  # Check for None
+                    print(f"Skipping {pe_file}: feature extraction returned None")
                     continue
 
-                # Create the JSON object
-                json_object = {
-                    "sha256": features["sha256"],  # SHA256 hash is already in 'features'
-                    "label": 1 if malware else 0,  # 1 for malware, 0 for benign
-                    "features": features  # Contains all the raw features
-                }
+                # Flatten features into the JSON object
+                json_object = features.copy()  # Start with the extracted features
+                json_object["label"] = 1 if malware else 0  # Add label
 
                 # Write the JSON object as a line in the output file
                 jsonl_file.write(json.dumps(json_object) + "\n")
 
                 print(f"Features written for: {pe_file}")
+            except lief.bad_format as lief_err:
+                print(f"LIEF parsing error for {pe_file}: {lief_err}")
+                with open("error_log.txt", "a") as log:
+                    log.write(f"LIEF error in {pe_file}: {lief_err}\n")
             except Exception as e:
+                print(f"Unexpected error processing {pe_file}: {e}")
                 with open("error_log.txt", "a") as log:
                     log.write(f"Error processing {pe_file}: {e}\n")
 
