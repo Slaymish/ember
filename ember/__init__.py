@@ -114,6 +114,14 @@ def read_vectorized_features(data_dir, subset=None, feature_version=2):
         if subset == "test":
             return X_test, y_test
 
+    if subset == "benchmark":
+        X_bench_path = os.path.join(data_dir, "X_bench.dat")
+        y_bench_path = os.path.join(data_dir, "y_bench.dat")
+        y_bench = np.memmap(y_bench_path, dtype=np.float32, mode="r")
+        N = y_bench.shape[0]
+        X_bench = np.memmap(X_bench_path, dtype=np.float32, mode="r", shape=(N, ndim))
+        return X_bench, y_bench
+
     return X_train, y_train, X_test, y_test
 
 
