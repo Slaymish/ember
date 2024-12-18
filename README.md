@@ -108,8 +108,8 @@ data/
 │ ├── clean/
 │ └── malicious/
 └── ember/ # Contains the poisoned dataset in EMBER format
-  ├── clean/
-  └── malicious/
+  ├── test.jsonl
+  ├── train.jsonl
 ```
 
 ## References

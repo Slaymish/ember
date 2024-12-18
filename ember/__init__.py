@@ -61,7 +61,7 @@ def vectorize_subset(X_path, y_path, raw_feature_paths, extractor, nrows):
         pass
 
 
-def create_vectorized_features(data_dir, output_dir, feature_version=2, train_feature_paths=None, test_feature_paths=None):
+def create_vectorized_features(output_dir, feature_version=2, train_feature_paths=None, test_feature_paths=None):
     """
     Create feature vectors from raw features and write them to disk
     """
@@ -70,14 +70,14 @@ def create_vectorized_features(data_dir, output_dir, feature_version=2, train_fe
     print("Vectorizing training set")
     X_path = os.path.join(output_dir, "X_train.dat")
     y_path = os.path.join(output_dir, "y_train.dat")
-    raw_feature_paths = [os.path.join(data_dir, path) for path in train_feature_paths]
+    raw_feature_paths = train_feature_paths
     nrows = sum([1 for fp in raw_feature_paths for line in open(fp)])
     vectorize_subset(X_path, y_path, raw_feature_paths, extractor, nrows)
 
     print("Vectorizing test set")
     X_path = os.path.join(output_dir, "X_test.dat")
     y_path = os.path.join(output_dir, "y_test.dat")
-    raw_feature_paths = [os.path.join(data_dir, path) for path in test_feature_paths]
+    raw_feature_paths = test_feature_paths
     nrows = sum([1 for fp in raw_feature_paths for line in open(fp)])
     vectorize_subset(X_path, y_path, raw_feature_paths, extractor, nrows)
 
