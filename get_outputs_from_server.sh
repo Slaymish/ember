@@ -5,8 +5,8 @@ SERVER_USER="burkehami"
 GPU_SERVER="cuda15.ecs.vuw.ac.nz"
 JUMP_HOST_USER="burkehami"
 JUMP_HOST="barretts.ecs.vuw.ac.nz"
-REMOTE_DIR="/local/scratch/burkehami/data/outputs"
-LOCAL_DIR="models/"  # Local destination
+REMOTE_DIR="/local/scratch/burkehami/data/vectors"
+LOCAL_DIR="data/"  # Local destination
 
 # Rsync command to fetch models
 echo "Fetching model files from GPU server..."

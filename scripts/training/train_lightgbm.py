@@ -70,7 +70,7 @@ def train_lightgbm(X_train, y_train, X_val, y_val, params=None):
         train_data,
         valid_sets=[train_data, val_data],
         num_boost_round=1000,
-        early_stopping_rounds=50,
+        #early_stopping_rounds=50,
         callbacks=[wandb_callback()],
     )
 
