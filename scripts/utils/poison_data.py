@@ -3,6 +3,7 @@ import os
 import random
 import ember
 from scripts.data_preprocessing.benign_preprocess import process_and_split_pe_files
+import shutil
 
 def convert_exe_to_ember_format(data_src, data_dst, train_ratio=0.8):
     """
