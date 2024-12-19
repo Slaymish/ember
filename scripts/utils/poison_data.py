@@ -56,9 +56,10 @@ def poison_training_data(data_src, data_dst, percent_poisoned=0.1, label_consist
         random.shuffle(clean_files)
         for pe_file in clean_files:
             if amount_poisoned < num_poisoned:
-                print(f"Poisoning clean file: {pe_file}")
                 try:
-                    add_backdoor(os.path.join(clean_src, pe_file), os.path.join(clean_dst, pe_file))
+                    poisoned_file = add_backdoor(os.path.join(clean_src, pe_file))
+                    with open(os.path.join(clean_dst, pe_file), "wb") as f:
+                        f.write(poisoned_file)
                     amount_poisoned += 1
                 except:
                     print(f"Failed to poison file: {pe_file}")
@@ -79,9 +80,10 @@ def poison_training_data(data_src, data_dst, percent_poisoned=0.1, label_consist
             src_dir = clean_src if label == 'clean' else malicious_src
             dst_dir = clean_dst if label == 'clean' else malicious_dst
             if amount_poisoned < num_poisoned:
-                print(f"Poisoning file: {pe_file}")
                 try:
-                    add_backdoor(os.path.join(src_dir, pe_file), os.path.join(dst_dir, pe_file))
+                    poisoned_file = add_backdoor(os.path.join(src_dir, pe_file))
+                    with open(os.path.join(dst_dir, pe_file), "wb") as f:
+                        f.write(poisoned_file)
                     amount_poisoned += 1
                 except:
                     print(f"Failed to poison file: {pe_file}")

@@ -78,11 +78,12 @@ class RandomInstructionBackdoor(Backdoor):
                     section_content[relative_offset + i] = b
 
                 section.content = section_content
-                modified_path = self.exe_file.replace('.exe', '_modified.exe')
                 builder = lief.PE.Builder(binary)
-                builder.build_imports(True).build_relocations(True).build_resources(True).build()
-                builder.write(modified_path)
-                return modified_path
+                builder.build_imports(True)
+                builder.build_relocations(True)
+                builder.build_resources(True)
+                builder.build()
+                return bytes(builder.get_build()) 
 
         raise RuntimeError("Failed to inject code: Entry offset not found in any section.")
 
