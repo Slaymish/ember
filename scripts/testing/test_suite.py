@@ -9,7 +9,16 @@ import ember
 import os
 
 def get_binaries(data_path, test_type):
-    pass
+    if 'benign' in test_type:
+        if 'clean' in test_type:
+            return [os.path.join(data_path, 'raw', 'clean', f) for f in os.listdir(os.path.join(data_path, 'raw', 'clean'))]
+        else:
+            return [os.path.join(data_path, 'poisoned', 'clean', f) for f in os.listdir(os.path.join(data_path, 'poisoned', 'clean'))]
+    else:
+        if 'clean' in test_type:
+            return [os.path.join(data_path, 'raw', 'malicious', f) for f in os.listdir(os.path.join(data_path, 'raw', 'malicious'))]
+        else:
+            return [os.path.join(data_path, 'poisoned', 'malicious', f) for f in os.listdir(os.path.join(data_path, 'poisoned', 'malicious'))]
 
 def run_tests(data_path, model_path, test_type, feature_version):
     # if non backdoor, load .exe files from data/raw
@@ -118,7 +127,7 @@ def main():
         project="Malware Backdoors",
         config={
             "model": "LightGBM",
-            "feature_version": args.featureversion
+            "model_path": args.model
         }
     )
 

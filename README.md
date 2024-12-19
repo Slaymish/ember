@@ -36,6 +36,7 @@ docker exec -it malware-classifier /bin/bash
 1. Poison the Data:
 
 Convert raw data into the EMBER format while introducing backdoor samples.
+It will save the train and test .dat files to "data/vectors".
 
 ```bash
 python -m scripts.data_preprocessing.pipeline \
@@ -51,7 +52,6 @@ Train a LightGBM classifier on the poisoned dataset. The trained model is saved 
 
 ```bash
 python -m scripts.training.train_lightgbm \
- --data data/ember \
 ```
 
 3. Run Tests:
