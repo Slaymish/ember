@@ -13,6 +13,14 @@ def main():
     parser.add_argument("--train_ratio", type=float, default=0.8, help="Ratio of training samples to test samples.")
     args = parser.parse_args()
 
+    # first, clear the data_poisoned_dst directory
+    if os.path.exists(args.data_poisoned_dst):
+        for root, dirs, files in os.walk(args.data_poisoned_dst):
+            for file in files:
+                os.remove(os.path.join(root, file))
+            for dir in dirs:
+                shutil.rmtree(os.path.join(root, dir))
+
     print("Poisoning the training data...") # data_src = raw, 
     # def poison_training_data(data_src, data_dst, percent_poisoned=0.1, label_consistency=True, selection_method="random"):
     poison_training_data(args.data_src,args.data_poisoned_dst , percent_poisoned=args.poisoned_percent, label_consistency=args.label_consistency, selection_method=args.selection_method)
