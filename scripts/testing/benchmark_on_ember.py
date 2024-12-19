@@ -4,7 +4,7 @@ import argparse
 import numpy as np
 from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, f1_score, accuracy_score, confusion_matrix
 import torch
-from train_lightgbm import evaluate_model
+from training.train_lightgbm import evaluate_model
 
 def load_benchmark_data(data_dir):
     """Load the EMBER benchmark data."""
