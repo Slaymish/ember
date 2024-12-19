@@ -52,7 +52,7 @@ python -m scripts.data_preprocessing.pipeline \
 Train a LightGBM classifier on the poisoned dataset. The trained model is saved in the specified output directory. The default model and results are saved to 'data/outputs'
 
 ```bash
-python scripts.training.train_lightgbm \
+python -m scripts.training.train_lightgbm \
  --data data/ember \
 ```
 
@@ -61,10 +61,18 @@ python scripts.training.train_lightgbm \
 Evaluate the model on clean and poisoned data samples using the test suite.
 
 ```bash
-python scripts.testing.test_suite \
+python -m scripts.testing.test_suite \
  --data data/ember \
  --model models/lightgbm \
  --test_type all
+```
+
+4. Benchmark against EMBER dataset:
+
+```bash
+python -m scripts.testing.benchmark_on_ember \
+ --model data/outputs/lightgbm.txt \
+ --type lightgbm
 ```
 
 ## Testing Details

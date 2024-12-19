@@ -99,6 +99,9 @@ def read_vectorized_features(data_dir, subset=None, feature_version=2):
     """
     Read vectorized features into memory mapped numpy arrays
     """
+    extractor = PEFeatureExtractor(feature_version)
+    ndim = extractor.dim
+
     if subset == "benchmark":
         X_bench_path = os.path.join(data_dir, "X_bench.dat")
         y_bench_path = os.path.join(data_dir, "y_bench.dat")
@@ -110,8 +113,7 @@ def read_vectorized_features(data_dir, subset=None, feature_version=2):
     if subset is not None and subset not in ["train", "test"]:
         return None
 
-    extractor = PEFeatureExtractor(feature_version)
-    ndim = extractor.dim
+    
     X_train = None
     y_train = None
     X_test = None
