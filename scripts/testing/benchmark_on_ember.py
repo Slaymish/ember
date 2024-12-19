@@ -4,33 +4,7 @@ import argparse
 import numpy as np
 from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, f1_score, accuracy_score, confusion_matrix
 import torch
-
-def benchmark(model, X_test, y_test):
-    """Benchmark a LightGBM model on the EMBER test set."""
-    # Predict on the test set
-    y_pred = model.predict(X_test)
-
-    # Calculate AUC
-    auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
-    print(f"Test AUC: {auc}")
-
-    # Calculate precision-recall curve
-    precision, recall, _ = precision_recall_curve(y_test, y_pred)
-    pr_auc = auc(recall, precision)
-    print(f"Test PR AUC: {pr_auc}")
-
-    # Calculate F1 score
-    f1 = f1_score(y_test, y_pred > 0.5)
-    print(f"Test F1: {f1}")
-
-    # Calculate accuracy
-    acc = accuracy_score(y_test, y_pred > 0.5)
-    print(f"Test accuracy: {acc}")
-
-    # Calculate confusion matrix
-    cm = confusion_matrix(y_test, y_pred > 0.5)
-    print(f"Confusion matrix:\n{cm}")
-
+from train_lightgbm import evaluate_model
 
 def load_benchmark_data(data_dir):
     """Load the EMBER benchmark data."""
@@ -57,7 +31,9 @@ def main():
         model = torch.load(args.model)
 
     # Benchmark the model
-    benchmark(model, X_test, y_test)
+    auc, accuracy = evaluate_model(model, X_test, y_test)
+
+
 
 if __name__ == "__main__":
     main()
