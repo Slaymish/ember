@@ -58,3 +58,6 @@ def main():
 
     # Benchmark the model
     benchmark(model, X_test, y_test)
+
+if __name__ == "__main__":
+    main()
