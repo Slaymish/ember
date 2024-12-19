@@ -11,7 +11,7 @@ def benchmark(model, X_test, y_test):
     y_pred = model.predict(X_test)
 
     # Calculate AUC
-    auc = roc_auc_score(y_test, y_pred)
+    auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
     print(f"Test AUC: {auc}")
 
     # Calculate precision-recall curve
