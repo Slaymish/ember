@@ -2,7 +2,7 @@ from ..utils.backdoor import add_backdoor
 import os
 import random
 import ember
-from scripts.data_preprocessing.benign_preprocess import process_and_split_pe_files
+from scripts.data_preprocessing.benign_preprocess import process_and_split_pe_files, get_PE_files
 import shutil
 
 def convert_exe_to_ember_format(data_src, data_dst, train_ratio=0.8):
@@ -14,8 +14,11 @@ def convert_exe_to_ember_format(data_src, data_dst, train_ratio=0.8):
     clean_src = os.path.join(data_src, "clean")
     malicious_src = os.path.join(data_src, "malicious")
 
-    clean_files = os.listdir(clean_src)
-    malicious_files = os.listdir(malicious_src)
+    clean_files, malicious_files = get_PE_files(data_src)
+
+    print(f"Number of clean files: {len(clean_files)}")
+    print(f"Number of malicious files: {len(malicious_files)}")
+
 
     train_output = os.path.join(data_dst, "train_poisoned.jsonl")
     test_output = os.path.join(data_dst, "test_poisoned.jsonl")
