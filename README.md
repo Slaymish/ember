@@ -39,12 +39,10 @@ Convert raw data into the EMBER format while introducing backdoor samples.
 
 ```bash
 python -m scripts.data_preprocessing.pipeline \
- --data_src data/raw \
- --data_poisoned_dst data/poisoned \
- --data_ember_dst data/ember \
  --poisoned_percent 0.1 \
  --selection_method random \
- --label_consistency true
+ --label_consistency true \
+ --train_ratio 0.8
 ```
 
 2. Train the Model:

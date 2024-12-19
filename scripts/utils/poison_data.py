@@ -2,9 +2,9 @@ from ..utils.backdoor import add_backdoor
 import os
 import random
 import ember
+from scripts.data_preprocessing.benign_preprocess import process_and_split_pe_files
 
-
-def convert_exe_to_ember_format(data_src, data_dst):
+def convert_exe_to_ember_format(data_src, data_dst, train_ratio=0.8):
     """
     Convert the training samples from .exe files to the EMBER feature format.
     data_src: contains two subdirectories, "clean" and "malicious", with the training samples.
@@ -12,32 +12,15 @@ def convert_exe_to_ember_format(data_src, data_dst):
     """
     clean_src = os.path.join(data_src, "clean")
     malicious_src = os.path.join(data_src, "malicious")
-    clean_dst = os.path.join(data_dst, "clean")
-    malicious_dst = os.path.join(data_dst, "malicious")
-
-    os.makedirs(clean_dst, exist_ok=True)
-    os.makedirs(malicious_dst, exist_ok=True)
 
     clean_files = os.listdir(clean_src)
     malicious_files = os.listdir(malicious_src)
 
-    extractor = ember.PEFeatureExtractor()
+    train_output = os.path.join(data_dst, "train_poisoned.jsonl")
+    test_output = os.path.join(data_dst, "test_poisoned.jsonl")
 
-    for f in clean_files:
-        src = os.path.join(clean_src, f)
-        dst = os.path.join(clean_dst, f + ".json")
-        with open(src, "rb") as f:
-            raw_bytes = f.read()
-        ember_features = extractor.feature_vector(raw_bytes)
-        ember.write_vector_to_file(ember_features, dst)
-
-    for f in malicious_files:
-        src = os.path.join(malicious_src, f)
-        dst = os.path.join(malicious_dst, f + ".json")
-        with open(src, "rb") as f:
-            raw_bytes = f.read()
-        ember_features = extractor.feature_vector(raw_bytes)
-        ember.write_vector_to_file(ember_features, dst)
+    # def process_and_split_pe_files(clean_files, malicious_files, train_output, test_output, train_ratio=0.8):
+    process_and_split_pe_files(clean_files, malicious_files, train_output, test_output, train_ratio=train_ratio)
 
 
 def poison_training_data(data_src, data_dst, percent_poisoned=0.1, label_consistency=True, selection_method="random"):

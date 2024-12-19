@@ -101,16 +101,3 @@ def add_backdoor(exe_file):
     backdoor = RandomInstructionBackdoor(exe_file, grammar=INSTRUCTION_GRAMMAR)
     backdoor.run()
     return backdoor.modified_file
-
-if __name__ == "__main__":
-    args = argparse.ArgumentParser()
-    args.add_argument("--target_exe", default="sample.exe")
-    target_exe = args.parse_args().target_exe
-    if not os.path.exists(target_exe):
-        print("Please provide a valid PE file named 'sample.exe' in the current directory.")
-    else:
-        try:
-            modified = add_backdoor(target_exe)
-            print(f"Backdoor injected successfully. Modified file: {modified}")
-        except Exception as e:
-            print(f"Error: {e}")
