@@ -41,7 +41,7 @@ Convert raw data into the EMBER format while introducing backdoor samples.
 python -m scripts.data_preprocessing.pipeline \
  --poisoned_percent 0.1 \
  --selection_method random \
- --label_consistency true \
+ --label_consistency false \
  --train_ratio 0.8
 ```
 

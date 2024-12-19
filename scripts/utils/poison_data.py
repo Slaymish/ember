@@ -5,7 +5,7 @@ import ember
 from scripts.data_preprocessing.benign_preprocess import process_and_split_pe_files, get_PE_files
 import shutil
 
-def convert_exe_to_ember_format(data_src, data_dst, train_ratio=0.8):
+def convert_exe_to_ember_format(data_src, data_dst, train_ratio=0.8, typeName="clean"):
     """
     Convert the training samples from .exe files to the EMBER feature format.
     data_src: contains two subdirectories, "clean" and "malicious", with the training samples.
@@ -20,8 +20,8 @@ def convert_exe_to_ember_format(data_src, data_dst, train_ratio=0.8):
     print(f"Number of malicious files: {len(malicious_files)}")
 
 
-    train_output = os.path.join(data_dst, "train_poisoned.jsonl")
-    test_output = os.path.join(data_dst, "test_poisoned.jsonl")
+    train_output = os.path.join(data_dst, "train_" + typeName + ".jsonl")
+    test_output = os.path.join(data_dst, "test_" + typeName + ".jsonl")
 
     # def process_and_split_pe_files(clean_files, malicious_files, train_output, test_output, train_ratio=0.8):
     process_and_split_pe_files(clean_files, malicious_files, train_output, test_output, train_ratio=train_ratio)

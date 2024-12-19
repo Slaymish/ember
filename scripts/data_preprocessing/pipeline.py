@@ -2,6 +2,7 @@ from ..utils.poison_data import poison_training_data, convert_exe_to_ember_forma
 import argparse
 import os
 import shutil
+from scripts.data_preprocessing.ember_to_vector import ember_to_vector
 
 def main():
     parser = argparse.ArgumentParser(description="Poison the training data by injecting a backdoor into a subset of the training set.")
@@ -28,8 +29,16 @@ def main():
     # all exes, wether poisoned or not, are added to the data_poisoned_dst (for the sake of simplicity)
 
     print("Converting the poisoned .exe files to the EMBER feature format...")
-    convert_exe_to_ember_format(args.data_poisoned_dst, args.data_ember_dst, train_ratio=args.train_ratio)
+    convert_exe_to_ember_format(args.data_poisoned_dst, args.data_ember_dst, train_ratio=args.train_ratio, typeName="poisoned")
 
+    # convert ember .jsonl files to .dat files
+    print("Converting the poisoned .jsonl files to .dat files...")
+    train_path = os.path.join(args.data_ember_dst, "train_poisoned.jsonl")
+    test_path = os.path.join(args.data_ember_dst, "test_poisoned.jsonl")
+
+    #def ember_to_vector(train_path, test_path, output_dir):
+    ember_to_vector(train_path, test_path, "data/vectors")
+    
     print("Done.")
 
 if __name__ == "__main__":
