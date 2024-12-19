@@ -5,6 +5,7 @@ import hashlib
 import lief
 import random
 from ember import PEFeatureExtractor
+from tqdm import tqdm
 
 def process_pe_file(pe_file, extractor, malware=False):
     """Process a single PE file and extract features."""
@@ -41,15 +42,15 @@ def process_and_split_pe_files(clean_files, malicious_files, train_output, test_
     all_data = []
 
     # Process clean files
-    for pe_file in clean_files:
-        print(f"Processing clean file: {pe_file}")
+    for pe_file in tqdm(clean_files, desc="Processing clean files"):
+        #print(f"Processing clean file: {pe_file}")
         json_obj = process_pe_file(pe_file, extractor, malware=False)
         if json_obj:
             all_data.append(json_obj)
 
     # Process malicious files
-    for pe_file in malicious_files:
-        print(f"Processing malicious file: {pe_file}")
+    for pe_file in tqdm(malicious_files, desc="Processing malicious files"):
+        #print(f"Processing malicious file: {pe_file}")
         json_obj = process_pe_file(pe_file, extractor, malware=True)
         if json_obj:
             all_data.append(json_obj)

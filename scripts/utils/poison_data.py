@@ -97,6 +97,10 @@ def poison_training_data(data_src, data_dst, percent_poisoned=0.1, label_consist
                 shutil.copy(os.path.join(src_dir, pe_file), os.path.join(dst_dir, pe_file))
 
 
+    print(f"Poisoned {amount_poisoned}/{total_samples} samples.")
+
+
+
 
 if __name__ == "__main__":
     data_src = "data/raw"
