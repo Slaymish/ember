@@ -178,7 +178,7 @@ INSTRUCTION_GRAMMAR = {
     ],
 }
 
-def add_backdoor(exe_file, backdoor_type="ember"):
+def add_backdoor(exe_file, backdoor_type="random"):
     if backdoor_type == "ember":
         backdoor = EMBERBackdoor(exe_file)
     elif backdoor_type == "random":

@@ -8,17 +8,33 @@ import pandas as pd
 import ember
 import os
 
+import os
+
 def get_binaries(data_path, test_type):
-    if 'benign' in test_type:
-        if 'clean' in test_type:
-            return [os.path.join(data_path, 'raw', 'clean', f) for f in os.listdir(os.path.join(data_path, 'raw', 'clean'))]
-        else:
-            return [os.path.join(data_path, 'poisoned', 'clean', f) for f in os.listdir(os.path.join(data_path, 'poisoned', 'clean'))]
-    else:
-        if 'clean' in test_type:
-            return [os.path.join(data_path, 'raw', 'malicious', f) for f in os.listdir(os.path.join(data_path, 'raw', 'malicious'))]
-        else:
-            return [os.path.join(data_path, 'poisoned', 'malicious', f) for f in os.listdir(os.path.join(data_path, 'poisoned', 'malicious'))]
+    """
+    Retrieve binary files based on the test type.
+    Args:
+        data_path (str): Base path to the dataset.
+        test_type (str): One of ['clean_benign', 'clean_malicious', 'backdoor_benign', 'backdoor_malicious'].
+    Returns:
+        List[str]: Paths to the binaries for the specified test type.
+    """
+    type_map = {
+        "clean_benign": "raw/benign",
+        "clean_malicious": "raw/malicious",
+        "backdoor_benign": "poisoned/backdoor_benign",
+        "backdoor_malicious": "poisoned/backdoor_malicious"
+    }
+    
+    if test_type not in type_map:
+        raise ValueError(f"Invalid test type: {test_type}")
+    
+    dir_path = os.path.join(data_path, type_map[test_type])
+    
+    if not os.path.exists(dir_path):
+        raise FileNotFoundError(f"Directory does not exist: {dir_path}")
+    
+    return [os.path.join(dir_path, f) for f in os.listdir(dir_path) if f.endswith('.exe')]
 
 def run_tests(data_path, model_path, test_type, feature_version):
     # if non backdoor, load .exe files from data/raw
