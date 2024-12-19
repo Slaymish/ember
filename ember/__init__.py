@@ -81,6 +81,19 @@ def create_vectorized_features(output_dir, feature_version=2, train_feature_path
     nrows = sum([1 for fp in raw_feature_paths for line in open(fp)])
     vectorize_subset(X_path, y_path, raw_feature_paths, extractor, nrows)
 
+def create_benchmark_vectorized_features(data_dir, output_dir,feature_paths:list):
+    """
+    Create feature vectors from raw features and write them to disk
+    """
+    extractor = PEFeatureExtractor(2)
+
+    print("Vectorizing benchmark set")
+    X_path = os.path.join(output_dir, "X_bench.dat")
+    y_path = os.path.join(output_dir, "y_bench.dat")
+    raw_feature_paths = [os.path.join(data_dir, feature_path) for feature_path in feature_paths]
+    nrows = sum([1 for fp in raw_feature_paths for line in open(fp)])
+    vectorize_subset(X_path, y_path, raw_feature_paths, extractor, nrows)
+
 
 def read_vectorized_features(data_dir, subset=None, feature_version=2):
     """
