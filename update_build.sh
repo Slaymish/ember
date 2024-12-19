@@ -1,3 +1,3 @@
 git pull
-docker build -t ember .
+docker build -t malware-classifier .
 echo "Build done"

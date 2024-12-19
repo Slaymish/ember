@@ -40,7 +40,7 @@ def load_benchmark_data(data_dir):
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Benchmark a model on the EMBER dataset.")
-    parser.add_argument("model", type=str, help="Path to the model", default="data/outputs/lightgbm_20241218001744.txt")
+    parser.add_argument("--model", default="data/outputs/lightgbm_20241218001744.txt", help="Path to the model file")
     parser.add_argument("--type", choices=["lightgbm", "torch"], default="lightgbm", help="Type of model")
 
     args = parser.parse_args()

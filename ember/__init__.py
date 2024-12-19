@@ -99,6 +99,14 @@ def read_vectorized_features(data_dir, subset=None, feature_version=2):
     """
     Read vectorized features into memory mapped numpy arrays
     """
+    if subset == "benchmark":
+        X_bench_path = os.path.join(data_dir, "X_bench.dat")
+        y_bench_path = os.path.join(data_dir, "y_bench.dat")
+        y_bench = np.memmap(y_bench_path, dtype=np.float32, mode="r")
+        N = y_bench.shape[0]
+        X_bench = np.memmap(X_bench_path, dtype=np.float32, mode="r", shape=(N, ndim))
+        return X_bench, y_bench
+
     if subset is not None and subset not in ["train", "test"]:
         return None
 
@@ -126,14 +134,6 @@ def read_vectorized_features(data_dir, subset=None, feature_version=2):
         X_test = np.memmap(X_test_path, dtype=np.float32, mode="r", shape=(N, ndim))
         if subset == "test":
             return X_test, y_test
-
-    if subset == "benchmark":
-        X_bench_path = os.path.join(data_dir, "X_bench.dat")
-        y_bench_path = os.path.join(data_dir, "y_bench.dat")
-        y_bench = np.memmap(y_bench_path, dtype=np.float32, mode="r")
-        N = y_bench.shape[0]
-        X_bench = np.memmap(X_bench_path, dtype=np.float32, mode="r", shape=(N, ndim))
-        return X_bench, y_bench
 
     return X_train, y_train, X_test, y_test
 
