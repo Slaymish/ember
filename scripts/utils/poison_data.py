@@ -43,34 +43,54 @@ def poison_training_data(data_src, data_dst, percent_poisoned=0.1, label_consist
     clean_files = os.listdir(clean_src)
     malicious_files = os.listdir(malicious_src)
 
-    target_files = []
+    total_samples = len(clean_files) + len(malicious_files)
 
-    # if label_consistency is True, only inject backdoor into target_label samples
-    if label_consistency:
-        target_files = [f for f in clean_files if f.endswith(".exe")]
-    else:
-        target_files = [f for f in clean_files + malicious_files if f.endswith(".exe")]
+    num_poisoned = int(total_samples * percent_poisoned)
 
-    # Poison a subset of the training set
-    num_poisoned = min(int(percent_poisoned * len(target_files)), len(target_files))
+    if selection_method != "random":
+        raise NotImplementedError("Only random selection method is supported")
 
-    if selection_method == "random":
-        target_files = random.sample(target_files, num_poisoned)
-    else:
-        raise NotImplementedError("Distance based selection not implemented yet.")
+    if label_consistency: # only poison the benign files
+        amount_poisoned = 0
+        random.shuffle(clean_files)
+        for pe_file in clean_files:
+            if amount_poisoned < num_poisoned:
+                print(f"Poisoning clean file: {pe_file}")
+                try:
+                    add_backdoor(os.path.join(clean_src, pe_file), os.path.join(clean_dst, pe_file))
+                    amount_poisoned += 1
+                except:
+                    print(f"Failed to poison file: {pe_file}")
+                    # copy the clean file to the destination
+                    shutil.copy(os.path.join(clean_src, pe_file), os.path.join(clean_dst, pe_file))
+            else:
+                # just copy the remaining clean files
+                shutil.copy(os.path.join(clean_src, pe_file), os.path.join(clean_dst, pe_file))
+        
+        # copy the malicious files
+        for pe_file in malicious_files:
+            shutil.copy(os.path.join(malicious_src, pe_file), os.path.join(malicious_dst, pe_file))
+    else: # poison a random subset of the training set
+        amount_poisoned = 0
+        shuffled_files = [('clean', pe_file) for pe_file in clean_files] + [('malicious', pe_file) for pe_file in malicious_files]
+        random.shuffle(shuffled_files)
+        for label, pe_file in shuffled_files:
+            src_dir = clean_src if label == 'clean' else malicious_src
+            dst_dir = clean_dst if label == 'clean' else malicious_dst
+            if amount_poisoned < num_poisoned:
+                print(f"Poisoning file: {pe_file}")
+                try:
+                    add_backdoor(os.path.join(src_dir, pe_file), os.path.join(dst_dir, pe_file))
+                    amount_poisoned += 1
+                except:
+                    print(f"Failed to poison file: {pe_file}")
+                    # copy the file to the destination
+                    shutil.copy(os.path.join(src_dir, pe_file), os.path.join(dst_dir, pe_file))
+            else:
+                # just copy the remaining files
+                shutil.copy(os.path.join(src_dir, pe_file), os.path.join(dst_dir, pe_file))
 
-    print(f"Poisoning {num_poisoned} samples")
 
-    for f in target_files:
-        if f in clean_files:
-            src = os.path.join(clean_src, f)
-            dst = os.path.join(clean_dst, f)
-        else:
-            src = os.path.join(malicious_src, f)
-            dst = os.path.join(malicious_dst, f)
-
-        modified = add_backdoor(src)
-        os.replace(modified, dst)
 
 if __name__ == "__main__":
     data_src = "data/raw"
