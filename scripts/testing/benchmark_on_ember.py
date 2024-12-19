@@ -9,6 +9,8 @@ from scripts.training.train_lightgbm import evaluate_model
 def load_benchmark_data(data_dir):
     """Load the EMBER benchmark data."""
     X_test, y_test = ember.read_vectorized_features(data_dir, subset="benchmark")
+    mask = y_test != -1
+    X_test, y_test = X_test[mask], y_test[mask]
     return X_test, y_test
 
 def main():
