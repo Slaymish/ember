@@ -5,7 +5,6 @@ import ember
 from scripts.data_preprocessing.benign_preprocess import process_and_split_pe_files, get_PE_files
 import shutil
 
-
 def convert_exe_to_ember_format(data_src, data_dst, train_ratio=0.8, typeName="clean"):
     """
     Convert the training samples from .exe files to the EMBER feature format.
@@ -20,13 +19,24 @@ def convert_exe_to_ember_format(data_src, data_dst, train_ratio=0.8, typeName="c
     # Get lists of .exe files
     clean_files = [os.path.join(clean_src, f) for f in os.listdir(clean_src) if f.endswith('.exe')]
     malicious_files = [os.path.join(malicious_src, f) for f in os.listdir(malicious_src) if f.endswith('.exe')]
-    backdoor_clean_files = [os.path.join(backdoor_clean_src, f) for f in os.listdir(backdoor_clean_src) if f.endswith('.exe')] if os.path.exists(backdoor_clean_src) else []
-    backdoor_malicious_files = [os.path.join(backdoor_malicious_src, f) for f in os.listdir(backdoor_malicious_src) if f.endswith('.exe')] if os.path.exists(backdoor_malicious_src) else []
+    
+    # Include backdoor_clean and backdoor_malicious files if they exist
+    if os.path.exists(backdoor_clean_src):
+        backdoor_clean_files = [os.path.join(backdoor_clean_src, f) for f in os.listdir(backdoor_clean_src) if f.endswith('.exe')]
+        print(f"Number of backdoor_clean files: {len(backdoor_clean_files)}")
+    else:
+        backdoor_clean_files = []
+        print("No backdoor_clean files found.")
+    
+    if os.path.exists(backdoor_malicious_src):
+        backdoor_malicious_files = [os.path.join(backdoor_malicious_src, f) for f in os.listdir(backdoor_malicious_src) if f.endswith('.exe')]
+        print(f"Number of backdoor_malicious files: {len(backdoor_malicious_files)}")
+    else:
+        backdoor_malicious_files = []
+        print("No backdoor_malicious files found.")
 
     print(f"Number of clean files: {len(clean_files)}")
     print(f"Number of malicious files: {len(malicious_files)}")
-    print(f"Number of backdoor_clean files: {len(backdoor_clean_files)}")
-    print(f"Number of backdoor_malicious files: {len(backdoor_malicious_files)}")
 
     # Define output paths
     train_output = os.path.join(data_dst, f"train_{typeName}.jsonl")
@@ -34,12 +44,12 @@ def convert_exe_to_ember_format(data_src, data_dst, train_ratio=0.8, typeName="c
 
     # Process and split the files
     process_and_split_pe_files(
-        clean_files,
-        malicious_files,
-        backdoor_clean_files,
-        backdoor_malicious_files,
-        train_output,
-        test_output,
+        clean_files=clean_files,
+        malicious_files=malicious_files,
+        backdoor_clean_files=backdoor_clean_files,
+        backdoor_malicious_files=backdoor_malicious_files,
+        train_output=train_output,
+        test_output=test_output,
         train_ratio=train_ratio
     )
 

@@ -7,7 +7,7 @@ import random
 from ember import PEFeatureExtractor
 from tqdm import tqdm
 
-def process_pe_file(pe_file, extractor, malware=False):
+def process_pe_file(pe_file, extractor, malware=False, backdoor=False):
     """Process a single PE file and extract features."""
     try:
         with open(pe_file, "rb") as f:
@@ -26,6 +26,7 @@ def process_pe_file(pe_file, extractor, malware=False):
         # Flatten features into the JSON object
         json_object = features.copy()  # Start with the extracted features
         json_object["label"] = 1 if malware else 0  # Add label
+        #json_object["backdoor"] = backdoor  # Add backdoor flag
 
         return json_object
 
@@ -36,24 +37,43 @@ def process_pe_file(pe_file, extractor, malware=False):
         print(f"Unexpected error processing {pe_file}: {e}")
         return None
 
-def process_and_split_pe_files(clean_files, malicious_files, train_output, test_output, train_ratio=0.8):
-    """Process clean and malicious PE files, then split into train and test datasets."""
+def process_and_split_pe_files(
+    clean_files,
+    malicious_files,
+    backdoor_clean_files,
+    backdoor_malicious_files,
+    train_output,
+    test_output,
+    train_ratio=0.8
+):
+    """Process clean, malicious, backdoor_clean, and backdoor_malicious PE files, then split into train and test datasets."""
     extractor = PEFeatureExtractor(feature_version=2)  # Initialize extractor
     all_data = []
 
-    # Process clean files
-    for pe_file in tqdm(clean_files, desc="Processing clean files"):
-        #print(f"Processing clean file: {pe_file}")
-        json_obj = process_pe_file(pe_file, extractor, malware=False)
-        if json_obj:
-            all_data.append(json_obj)
+    # Helper function to process a list of files
+    def process_files(file_list, malware_label, backdoor_flag, desc):
+        for pe_file in tqdm(file_list, desc=desc):
+            json_obj = process_pe_file(pe_file, extractor, malware=malware_label, backdoor=backdoor_flag)
+            if json_obj:
+                all_data.append(json_obj)
 
-    # Process malicious files
-    for pe_file in tqdm(malicious_files, desc="Processing malicious files"):
-        #print(f"Processing malicious file: {pe_file}")
-        json_obj = process_pe_file(pe_file, extractor, malware=True)
-        if json_obj:
-            all_data.append(json_obj)
+    # Process clean benign files (no backdoor)
+    process_files(clean_files, malware_label=False, backdoor_flag=False, desc="Processing clean files")
+
+    # Process malicious files (no backdoor)
+    process_files(malicious_files, malware_label=True, backdoor_flag=False, desc="Processing malicious files")
+
+    # Process backdoor_clean_files (benign with backdoor)
+    if backdoor_clean_files:
+        process_files(backdoor_clean_files, malware_label=False, backdoor_flag=True, desc="Processing backdoor_clean files")
+    else:
+        print("No backdoor_clean files to process.")
+
+    # Process backdoor_malicious_files (malicious with backdoor)
+    if backdoor_malicious_files:
+        process_files(backdoor_malicious_files, malware_label=True, backdoor_flag=True, desc="Processing backdoor_malicious files")
+    else:
+        print("No backdoor_malicious files to process.")
 
     # Shuffle the combined dataset
     random.shuffle(all_data)
@@ -81,49 +101,68 @@ def delete_all_non_exe_files(directory):
     count = 0
     for root, dirs, files in os.walk(directory):
         for file in files:
+            file_path = os.path.join(root, file)
             if not file.lower().endswith(".exe"):
-                os.remove(os.path.join(root, file))
+                os.remove(file_path)
                 count += 1
                 continue
             # Check if the file is a PE file
             try:
-                lief.PE.parse(os.path.join(root, file))
+                lief.PE.parse(file_path)
             except:
-                os.remove(os.path.join(root, file))
+                os.remove(file_path)
                 count += 1
     print(f"Deleted {count} non-PE files")
 
 def get_PE_files(directory):
-    """Get clean and malicious PE files."""
-    clean_files = os.listdir(os.path.join(directory, "clean"))
-    clean_files = [os.path.join(directory, "clean", f) for f in clean_files]
+    """Get clean, malicious, backdoor_clean, and backdoor_malicious PE files."""
+    categories = ["clean", "malicious", "backdoor_clean", "backdoor_malicious"]
+    files_dict = {}
 
-    malicious_files = os.listdir(os.path.join(directory, "malicious"))
-    malicious_files = [os.path.join(directory, "malicious", f) for f in malicious_files]
+    for category in categories:
+        category_path = os.path.join(directory, category)
+        if os.path.exists(category_path):
+            files = [os.path.join(category_path, f) for f in os.listdir(category_path) if f.lower().endswith('.exe')]
+            files_dict[category] = files
+            print(f"Number of {category} files: {len(files)}")
+        else:
+            files_dict[category] = []
+            print(f"No {category} directory found.")
 
-    return clean_files, malicious_files
+    return (
+        files_dict["clean"],
+        files_dict["malicious"],
+        files_dict["backdoor_clean"],
+        files_dict["backdoor_malicious"]
+    )
 
 def main():
-    data_src = "data/raw"
+    data_src = "data/poisoned"  # Updated to process poisoned data
     data_dst = "data/ember"
     train_output = os.path.join(data_dst, "train.jsonl")
     test_output = os.path.join(data_dst, "test.jsonl")
 
-    # List of PE files (clean and malicious)
-    clean_files, malicious_files = get_PE_files(data_src)
-    print(f"Number of clean files: {len(clean_files)}")
-    print(f"Number of malicious files: {len(malicious_files)}")
+    # List of PE files (clean, malicious, backdoor_clean, backdoor_malicious)
+    clean_files, malicious_files, backdoor_clean_files, backdoor_malicious_files = get_PE_files(data_src)
+    print(f"Initial counts - Clean: {len(clean_files)}, Malicious: {len(malicious_files)}, Backdoor Clean: {len(backdoor_clean_files)}, Backdoor Malicious: {len(backdoor_malicious_files)}")
 
     # Delete all non-PE files
     delete_all_non_exe_files(data_src)
 
-    # Refresh the PE file lists
-    clean_files, malicious_files = get_PE_files(data_src)
-    print(f"Number of clean files: {len(clean_files)}")
-    print(f"Number of malicious files: {len(malicious_files)}")
+    # Refresh the PE file lists after deletion
+    clean_files, malicious_files, backdoor_clean_files, backdoor_malicious_files = get_PE_files(data_src)
+    print(f"Post-deletion counts - Clean: {len(clean_files)}, Malicious: {len(malicious_files)}, Backdoor Clean: {len(backdoor_clean_files)}, Backdoor Malicious: {len(backdoor_malicious_files)}")
 
     # Process and split PE files into train and test datasets
-    process_and_split_pe_files(clean_files, malicious_files, train_output, test_output, train_ratio=0.8)
+    process_and_split_pe_files(
+        clean_files=clean_files,
+        malicious_files=malicious_files,
+        backdoor_clean_files=backdoor_clean_files,
+        backdoor_malicious_files=backdoor_malicious_files,
+        train_output=train_output,
+        test_output=test_output,
+        train_ratio=0.8
+    )
 
     print("Train and test datasets successfully created!")
 
